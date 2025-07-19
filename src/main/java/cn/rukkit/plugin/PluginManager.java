@@ -12,7 +12,6 @@ package cn.rukkit.plugin;
 import cn.rukkit.*;
 import cn.rukkit.event.*;
 import cn.rukkit.event.EventListener;
-import cn.rukkit.plugin.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.net.*;
@@ -81,27 +80,22 @@ public class PluginManager
 						log.debug(pluginConf.pluginClass);
 						URL url1 = new URL("file:" + f.getAbsolutePath());
 						URLClassLoader myClassLoader1 = new URLClassLoader(new URL[] { url1 }, Thread.currentThread().getContextClassLoader());
-						try
-						{
+						try{
 							Class<?> pluginClass = myClassLoader1.loadClass(pluginConf.pluginClass);
 							RukkitPlugin plugin = (RukkitPlugin) pluginClass.newInstance();
 							plugin.config = pluginConf;
 							loadPlugin(plugin);
-						}
-						catch (IllegalAccessException e1)
-						{
+						}catch (IllegalAccessException e1){
 							log.error("Plugin could not be loaded.",e1);
-						}
-						catch (InstantiationException e2)
-						{
+						}catch (InstantiationException e2){
 							log.error("Plugin could not be loaded.", e2);
-						}
-						catch (ClassNotFoundException e3)
-						{
+						}catch (ClassNotFoundException e3){
 							log.error("Plugin could not be loaded.Class not found.", e3);
 						}
+						myClassLoader1.close();
 					}
 				}
+				jar.close();
 			}
 		}
 
@@ -173,11 +167,13 @@ public class PluginManager
 
 	}
 
+	@SuppressWarnings("unused")
 	private void enablePluginDirectly(RukkitPlugin plugin)
 	{
 		plugin.setEnabled(true);
 	}
 
+	@SuppressWarnings("unused")
 	private void disablePluginDirectly(RukkitPlugin plugin)
 	{
 		plugin.setEnabled(false);

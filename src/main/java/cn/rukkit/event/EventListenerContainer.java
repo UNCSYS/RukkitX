@@ -11,7 +11,6 @@ package cn.rukkit.event;
 
 import cn.rukkit.plugin.*;
 import java.lang.reflect.*;
-import java.util.*;
 
 public class EventListenerContainer
 {

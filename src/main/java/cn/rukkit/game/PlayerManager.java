@@ -8,10 +8,8 @@
  */
 
 package cn.rukkit.game;
-import cn.rukkit.*;
 import cn.rukkit.network.NetworkRoom;
 
-import java.util.Arrays;
 //import sun.nio.ch.Net;
 
 public class PlayerManager

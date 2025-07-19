@@ -13,7 +13,6 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
-import cn.rukkit.command.ServerCommandListener;
 import cn.rukkit.config.RoundConfig;
 import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
@@ -23,7 +22,6 @@ import cn.rukkit.game.PingType;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
-import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.network.RoomConnectionManager;
 import cn.rukkit.network.packet.Packet;
@@ -32,10 +30,8 @@ import cn.rukkit.util.LangUtil;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ScheduledFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +54,6 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	@Override
 	public boolean onSend(RoomConnection con, String[] args) {
-		// TODO: Implement this method
 		StringBuilder build = new StringBuilder();
 		build.append("Rukkit Server v" + Rukkit.RUKKIT_VERSION + "\n");
 		build.append("Rukkit Plugin API v" + Rukkit.PLUGIN_API_VERSION);
@@ -79,7 +74,6 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 
 	@Override
 	public void loadConfig() {
-		// TODO: Implement this method
 		config = new PluginConfig();
 		config.name = "Basic Chat Command Plugin";
 		config.author = "rukkit";
@@ -92,7 +86,6 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public class KickCallBack implements ChatCommandListener {
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
-			// TODO: Implement this method
 			if (con.player.isAdmin && args.length > 1 || !con.currectRoom.isGaming()) {
 				int id = Integer.parseInt(args[1]);
 				NetworkPlayer player = con.currectRoom.playerManager.get(id);
@@ -110,7 +103,6 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 	public static class TeamChatCallback implements ChatCommandListener {
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
-			// TODO: Implement this method
 			if (args.length < 1) return false;
 			con.player.sendTeamMessage(args[0]);
 			return false;
@@ -124,7 +116,6 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		}
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
-			// TODO: Implement this method
 			// Maps
 			if (type == 0) {
 				StringBuilder build = new StringBuilder();

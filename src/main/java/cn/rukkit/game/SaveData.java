@@ -76,10 +76,11 @@ public class SaveData {
 			}
 			
 			int tickTime;
+			//奇怪了 明明用上了 却说没用上
+			@SuppressWarnings("unused")
 			float mapX, mapY;
 			
-			log.debug("{}, {}, {}, {}",
-					  tickTime = in.readInt(), mapY = in.readFloat(), mapX = in.readFloat(), in.readFloat());
+			log.debug("{}, {}, {}, {}",tickTime = in.readInt(), mapY = in.readFloat(), mapX = in.readFloat(), in.readFloat());
 					  
 			this.time = tickTime;
 			

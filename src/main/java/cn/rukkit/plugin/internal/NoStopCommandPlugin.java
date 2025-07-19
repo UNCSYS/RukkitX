@@ -13,7 +13,6 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
-import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.network.RoomConnection;
 import cn.rukkit.network.RoomConnectionManager;
@@ -23,10 +22,8 @@ import cn.rukkit.util.LangUtil;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 public class NoStopCommandPlugin extends InternalRukkitPlugin{

@@ -21,7 +21,6 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +96,8 @@ public class NetworkPlayer
 	 * @param <T>
 	 */
 	public <T> T getExtraDataAs(String key, T defaultValue, Class<T> tClass) {
-		return (T) data.extraData.getOrDefault(key, defaultValue);
+    	Object value = data.extraData.getOrDefault(key, defaultValue);
+    	return tClass.isInstance(value) ? tClass.cast(value) : defaultValue;
 	}
 
 	/**
