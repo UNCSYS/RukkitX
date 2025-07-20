@@ -65,7 +65,10 @@ public class PlayerManager
 	*/
 	public void remove(NetworkPlayer p){
 		int index = getIndex(p);
-		remove(index);
+		if (index != -1) {
+			//说明已经不存在了 不用移除?
+			remove(index);
+		}
 	}
 
 	/**

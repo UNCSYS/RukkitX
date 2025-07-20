@@ -12,7 +12,6 @@ package cn.rukkit.network.packet;
 import cn.rukkit.*;
 import cn.rukkit.config.RoundConfig;
 import cn.rukkit.game.PingType;
-import cn.rukkit.game.SaveData;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.mod.Mod.*;
 import cn.rukkit.network.*;
@@ -27,29 +26,29 @@ import org.slf4j.LoggerFactory;
 
 public class Packet {
 	//Server Commands
-	public static final int PACKET_REGISTER_CONNECTION = 161;
-	public static final int PACKET_TEAM_LIST = 115;
-	public static final int PACKET_HEART_BEAT = 108;
-	public static final int PACKET_SEND_CHAT = 141;
-	public static final int PACKET_SERVER_INFO = 106;
-	public static final int PACKET_START_GAME = 120;
-	public static final int PACKET_QUESTION = 117;
-	public static final int PACKET_QUESTION_RESPONCE = 118;
+	public static final int PACKET_REGISTER_CONNECTION = 161;//A1
+	public static final int PACKET_TEAM_LIST = 115;//73
+	public static final int PACKET_HEART_BEAT = 108;//6C
+	public static final int PACKET_SEND_CHAT = 141;//8D
+	public static final int PACKET_SERVER_INFO = 106;//6A
+	public static final int PACKET_START_GAME = 120;//78
+	public static final int PACKET_QUESTION = 117;//75
+	public static final int PACKET_QUESTION_RESPONCE = 118;//76
 
 	//Client Commands
-	public static final int PACKET_PREREGISTER_CONNECTION = 160;
-	public static final int PACKET_HEART_BEAT_RESPONSE = 109;
-	public static final int PACKET_ADD_CHAT = 140;
-	public static final int PACKET_PLAYER_INFO = 110;
-	public static final int PACKET_DISCONNECT = 111;
-	public static final int PACKET_RANDY = 112;
+	public static final int PACKET_PREREGISTER_CONNECTION = 160;//A0
+	public static final int PACKET_HEART_BEAT_RESPONSE = 109;//6D
+	public static final int PACKET_ADD_CHAT = 140;//8C
+	public static final int PACKET_PLAYER_INFO = 110;//6E
+	public static final int PACKET_DISCONNECT = 111;//6F
+	public static final int PACKET_RANDY = 112;//70
 
 	//Game Commands
-	public static final int PACKET_ADD_GAMECOMMAND = 20;
-	public static final int PACKET_TICK = 10;
-	public static final int PACKET_SYNC_CHECKSUM = 30;
-	public static final int PACKET_SYNC_CHECKSUM_RESPONCE = 31;
-    public static final int PACKET_SYNC = 35;
+	public static final int PACKET_ADD_GAMECOMMAND = 20;//14
+	public static final int PACKET_TICK = 10;//0A
+	public static final int PACKET_SYNC_CHECKSUM = 30;//1E
+	public static final int PACKET_SYNC_CHECKSUM_RESPONCE = 31;//1F
+    public static final int PACKET_SYNC = 35;//23
 	
 	private static final Logger log = LoggerFactory.getLogger(Packet.class);
 	public byte[] bytes;

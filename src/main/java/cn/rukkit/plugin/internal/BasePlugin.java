@@ -13,6 +13,12 @@
 
 package cn.rukkit.plugin.internal;
 
+import java.io.IOException;
+import java.text.MessageFormat;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import cn.rukkit.Rukkit;
 import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
@@ -20,13 +26,9 @@ import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
 import cn.rukkit.event.player.PlayerReconnectEvent;
-import cn.rukkit.network.RoomConnection;
+import cn.rukkit.network.NetworkRoom;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.text.MessageFormat;
 
 public class BasePlugin extends InternalRukkitPlugin implements EventListener {
 
@@ -36,7 +38,19 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
     @EventHandler
     public void onPlayerJoinTip(PlayerJoinEvent event) {
         event.getPlayer().getRoom().connectionManager.broadcastServerMessage(MessageFormat.format(LangUtil.getString("rukkit.playerJoin"), event.getPlayer().name));
-        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} joined!", event.getPlayer().name);
+        LoggerFactory.getLogger("Room #" + event.getPlayer().getRoom().roomId).info("Player {} joined!",event.getPlayer().name);
+
+        NetworkRoom thisRoom = event.getPlayer().getRoom();
+        if (!thisRoom.isGaming()) {
+            if (thisRoom.playerManager.getPlayerCount() >= 8) {
+                thisRoom.startGame();
+                thisRoom.connectionManager.broadcastServerMessage("[Debug] people >= 8");
+            } else {
+                thisRoom.connectionManager.broadcastServerMessage("[Debug] people <= 8");
+            }
+            //thisRoom.config.mapName = "[p8]Two Sides (8p)";
+            //thisRoom.config.income = 100.0f;
+        }
     }
 
     @EventHandler

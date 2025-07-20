@@ -183,20 +183,7 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 
 					//==========
 				} else {
-					try {
-						ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
-						if (!conn.currectRoom.isGaming()) {
-							conn.currectRoom.config.mapName ="[p8]Two Sides (8p)";
-							conn.currectRoom.config.income= 2.0f;
-							conn.handler.ctx.writeAndFlush(Packet.serverInfo(conn.currectRoom.config));
-							if (conn.currectRoom.playerManager.getPlayerCount()>=8) {
-								conn.currectRoom.startGame();
-								conn.sendServerMessage("[Debug] people >= 8");
-							}else{
-								conn.sendServerMessage("[Debug] people <= 8");
-							}
-						}
-					} catch (IOException ignored) {}
+					ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
 				}
 
 

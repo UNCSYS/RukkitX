@@ -56,7 +56,6 @@ public class Rukkit {
 	private static SaveData defaultSave;
 
 	public static void shutdown(String message) {
-		// TODO: Implement this method
 		log.info("Server will shutdown...");
 		log.info("Disconnect current players...");
 		getGlobalConnectionManager().broadcastGlobalServerMessage("Server is stopped!");
@@ -257,7 +256,7 @@ public class Rukkit {
 		loadRoundConfig();
 		log.info("load::Language..."); // 加载语言文件
 		String[] lang_format = getConfig().lang.split("_");
-		if (lang_format.length > 2) {
+		if (lang_format.length == 2) {
 			LangUtil.lc = new Locale(lang_format[0], lang_format[1]);
 		} else if (lang_format.length == 1) {
 			LangUtil.lc = new Locale(lang_format[0]);
@@ -299,7 +298,7 @@ public class Rukkit {
 		pluginManager.loadPlugin(new CommandPlugin());
 		pluginManager.loadPlugin(new TestPlugin());
 		pluginManager.loadPlugin(new ServerCommandPlugin());
-		pluginManager.loadPlugin(new UplistCommandPlugin());
+		//pluginManager.loadPlugin(new UplistCommandPlugin());
 		pluginManager.loadPluginInDir();
 		
 		log.info("start::game server on port:" + config.serverPort);

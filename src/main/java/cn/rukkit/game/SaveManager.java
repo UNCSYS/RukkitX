@@ -20,7 +20,6 @@ import cn.rukkit.network.NetworkRoom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cn.rukkit.network.packet.Packet;
-import java.io.InputStream;
 
 public class SaveManager {
 

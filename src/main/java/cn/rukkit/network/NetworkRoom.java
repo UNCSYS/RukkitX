@@ -82,8 +82,7 @@ public class NetworkRoom {
             HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
             for (RoomConnection r: connectionManager.getConnections()) {
                 if (r.checkSumSent) {
-                    map.put(r.lastSyncTick,
-                            map.getOrDefault(r.lastSyncTick, 0) + 1);
+                    map.put(r.lastSyncTick,map.getOrDefault(r.lastSyncTick, 0) + 1);
                 }
             }
             AtomicInteger max = new AtomicInteger();

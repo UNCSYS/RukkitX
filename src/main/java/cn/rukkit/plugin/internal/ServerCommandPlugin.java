@@ -164,9 +164,8 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         }
         @Override
         public void onSend(String[] args) {
-            // TODO: Implement this method
-            // Maps
             if (type == 0) {
+                // Maps
                 StringBuilder build = new StringBuilder();
                 if (args.length > 0) {
                     build.append("- Maps -  Page ").append(args[0]).append(" \n");
@@ -184,6 +183,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                 // con.sendServerMessage(build.toString());
                 System.out.println(build);
             } else {
+                // Map
                 if (args.length > 1) {
                     NetworkRoom room = Rukkit.getRoomManager().getRoom(Integer.parseInt(args[0]));
                     if (room == null) return;
