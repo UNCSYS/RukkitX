@@ -31,9 +31,9 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.Tag;
 
 import cn.rukkit.Rukkit;
-import cn.rukkit.network.NetworkRoom;
-import cn.rukkit.network.RoomConnection;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.room.NetworkRoom;
+import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.util.LangUtil;
 
 public class NetworkPlayer

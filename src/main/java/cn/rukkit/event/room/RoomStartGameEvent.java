@@ -11,7 +11,7 @@ package cn.rukkit.event.room;
 
 import cn.rukkit.event.Event;
 import cn.rukkit.event.ListenerList;
-import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.room.NetworkRoom;
 
 public class RoomStartGameEvent extends Event {
     private static ListenerList list = new ListenerList(RoomStartGameEvent.class);

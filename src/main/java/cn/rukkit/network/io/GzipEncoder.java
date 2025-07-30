@@ -7,7 +7,7 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network;
+package cn.rukkit.network.io;
 
 import java.io.*;
 import java.util.zip.*;

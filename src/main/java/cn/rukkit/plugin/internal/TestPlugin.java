@@ -16,8 +16,8 @@ import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
 import cn.rukkit.event.action.PingEvent;
 import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.network.RoomConnection;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 
 import java.io.File;

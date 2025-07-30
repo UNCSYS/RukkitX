@@ -14,7 +14,9 @@ import java.util.*;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.*;
 import cn.rukkit.network.*;
-import cn.rukkit.network.packet.*;
+import cn.rukkit.network.core.packet.*;
+import cn.rukkit.network.room.RoomConnection;
+
 import java.io.*;
 
 public class CommandManager 

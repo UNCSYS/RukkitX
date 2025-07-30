@@ -16,10 +16,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.room.NetworkRoom;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cn.rukkit.network.packet.Packet;
 
 public class SaveManager {
 

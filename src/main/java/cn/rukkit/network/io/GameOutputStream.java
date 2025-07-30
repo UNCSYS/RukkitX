@@ -7,12 +7,13 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network;
+package cn.rukkit.network.io;
 
-import cn.rukkit.network.packet.*;
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
+
+import cn.rukkit.network.core.packet.*;
 
 public class GameOutputStream
 {

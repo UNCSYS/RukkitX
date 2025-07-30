@@ -7,7 +7,7 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network.packet;
+package cn.rukkit.network.core.packet;
 
 import io.netty.buffer.*;
 import io.netty.channel.*;

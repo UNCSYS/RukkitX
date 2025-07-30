@@ -7,13 +7,14 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network;
+package cn.rukkit.network.room;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.RoomGameServer;
+import cn.rukkit.network.core.packet.Packet;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.ChannelMatcher;
@@ -28,7 +29,7 @@ import java.util.List;
 
 public class RoomConnectionManager {
     private final NetworkRoom room;
-    volatile List<RoomConnection> connections = new ArrayList<RoomConnection>();
+    public volatile List<RoomConnection> connections = new ArrayList<RoomConnection>();
     private ChannelGroup CHANNEL_GROUP;
 
     private PlayerManager playerManager;

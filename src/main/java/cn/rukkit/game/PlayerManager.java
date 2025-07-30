@@ -8,7 +8,7 @@
  */
 
 package cn.rukkit.game;
-import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.room.NetworkRoom;
 
 //import sun.nio.ch.Net;
 

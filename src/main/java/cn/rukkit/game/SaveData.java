@@ -10,8 +10,9 @@
 package cn.rukkit.game;
 import cn.rukkit.Rukkit;
 import cn.rukkit.game.map.CustomMapLoader;
-import cn.rukkit.network.GameInputStream;
-import cn.rukkit.network.GameOutputStream;
+import cn.rukkit.network.io.GameInputStream;
+import cn.rukkit.network.io.GameOutputStream;
+
 import java.io.File;
 import java.io.IOException;
 import org.slf4j.Logger;

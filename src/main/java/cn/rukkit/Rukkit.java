@@ -14,6 +14,10 @@ import cn.rukkit.config.*;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.network.*;
+import cn.rukkit.network.core.GlobalConnectionManager;
+import cn.rukkit.network.room.RoomConnection;
+import cn.rukkit.network.room.RoomManager;
+
 import java.io.*;
 
 import cn.rukkit.util.LangUtil;

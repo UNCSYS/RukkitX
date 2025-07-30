@@ -1,4 +1,4 @@
-package cn.rukkit.network;
+package cn.rukkit.network.room;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.config.RoundConfig;
@@ -7,7 +7,7 @@ import cn.rukkit.event.room.RoomStartGameEvent;
 import cn.rukkit.event.room.RoomStopGameEvent;
 import cn.rukkit.game.*;
 import cn.rukkit.network.command.GameCommand;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.util.Vote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

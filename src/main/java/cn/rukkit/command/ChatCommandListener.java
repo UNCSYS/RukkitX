@@ -9,6 +9,7 @@
 
 package cn.rukkit.command;
 import cn.rukkit.network.*;
+import cn.rukkit.network.room.RoomConnection;
 
 public interface ChatCommandListener
 {

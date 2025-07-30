@@ -26,7 +26,7 @@ import cn.rukkit.event.player.PlayerChatEvent;
 import cn.rukkit.event.player.PlayerJoinEvent;
 import cn.rukkit.event.player.PlayerLeftEvent;
 import cn.rukkit.event.player.PlayerReconnectEvent;
-import cn.rukkit.network.NetworkRoom;
+import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 
@@ -48,8 +48,8 @@ public class BasePlugin extends InternalRukkitPlugin implements EventListener {
             } else {
                 thisRoom.connectionManager.broadcastServerMessage("[Debug] people <= 8");
             }
-            //thisRoom.config.mapName = "[p8]Two Sides (8p)";
-            //thisRoom.config.income = 100.0f;
+            thisRoom.config.mapName = "[p8]Two Sides (8p)";
+            thisRoom.config.income = 1.0f;
         }
     }
 

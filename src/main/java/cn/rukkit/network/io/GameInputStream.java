@@ -7,10 +7,11 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network;
+package cn.rukkit.network.io;
 
-import cn.rukkit.network.packet.*;
 import org.slf4j.LoggerFactory;
+
+import cn.rukkit.network.core.packet.*;
 
 import java.io.*;
 import java.util.*;
