@@ -67,10 +67,23 @@ public class GameOutputStream
 		this.stream.writeShort(val);
 	}
 
-    public void writeString(String val) throws IOException {
-        this.stream.writeUTF(val);
-    }
-	
+	private static boolean isBlank(Object string) {
+		return string == null || "".equals(string.toString().trim());
+	}
+
+	public void writeIsString(String value) throws IOException {
+		if (isBlank(value)) {
+			writeBoolean(false);
+		} else {
+			writeBoolean(true);
+			writeString(value);
+		}
+	}
+
+	public void writeString(String val) throws IOException {
+		this.stream.writeUTF(val);
+	}
+
 	public void write(byte[] val) throws IOException {
 		this.stream.write(val);
 		this.stream.flush();

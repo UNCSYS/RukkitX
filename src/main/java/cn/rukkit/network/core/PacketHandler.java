@@ -41,15 +41,20 @@ public class PacketHandler {
     
     private final ChannelHandlerContext ctx;
     private final ConnectionHandler handler;
-    private final Packet p;
+    private Packet p;
     private RoomConnection conn;
     private NetworkRoom currentRoom;
     private String disconnectReason;
 
-    public PacketHandler(ChannelHandlerContext ctx, Object msg, ConnectionHandler handler) {
+    public PacketHandler(ChannelHandlerContext ctx, Object msg, ConnectionHandler handler, RoomConnection conn) {
         this.ctx = ctx;
         this.p = (Packet) msg;
         this.handler = handler;
+        this.conn = conn;
+    }
+
+    public void updateMsg(Object msg){
+        this.p = (Packet) msg;
     }
 
     public void handle() throws Exception {

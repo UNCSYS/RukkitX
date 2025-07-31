@@ -16,7 +16,7 @@ public class PacketType{
 	public static final int PREREGISTER_CONNECTION = 160;//A0
 	public static final int HEART_BEAT_RESPONSE = 109;//6D 心跳包应答
 	public static final int ADD_CHAT = 140;//8C
-	public static final int PLAYER_INFO = 110;//6E
+	public static final int PLAYER_INFO = 110;//6E hps: REGISTER_PLAYER
 	public static final int DISCONNECT = 111;//6F
 	public static final int READY = 112;//70 原RANDY改READY RW-HPS 给出的是ACCEPT_START_GAME
 

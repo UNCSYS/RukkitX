@@ -73,6 +73,10 @@ public class GameInputStream
     public long readLong() throws IOException {
         return this.stream.readLong();
     }
+	
+	public String readIsString() throws IOException {
+    	return readBoolean() ? readString() : "";
+	}
 
     public String readString() throws IOException {
         return this.stream.readUTF();
@@ -85,6 +89,10 @@ public class GameInputStream
         for (int i2 = 0; i2 < n3 && (n2 = this.stream.read(arrby, i2, n3 - i2)) != -1; i2 += n2) {
         }
         return arrby;
+    }
+
+    public void skip(int skip) {
+        this.buffer.skip(skip);
     }
 
 	public DataInputStream getDecodeStream() throws IOException{

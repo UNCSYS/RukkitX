@@ -11,7 +11,6 @@ package cn.rukkit.network;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.network.core.ConnectionHandler;
-import cn.rukkit.network.core.ConnectionHandlerRelay;
 import cn.rukkit.network.core.packet.PacketDecoder;
 import cn.rukkit.network.core.packet.PacketEncoder;
 import io.netty.bootstrap.ServerBootstrap;
@@ -54,13 +53,8 @@ public class RoomGameServer {
                         @Override
                         protected void initChannel(SocketChannel p1) throws Exception {
                             // TODO: Implement this method
-                            if("true".equals("true")) {
-                                p1.pipeline().addLast(new PacketDecoder());
-                                p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler());
-                            }else{
-                                p1.pipeline().addLast(new PacketDecoder());
-                                p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandlerRelay());
-                            }
+                            p1.pipeline().addLast(new PacketDecoder());
+                            p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler());
                         }
                     });
             //System.out.println("-Server started!");
