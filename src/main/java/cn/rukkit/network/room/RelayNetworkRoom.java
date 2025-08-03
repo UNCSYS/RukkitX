@@ -35,6 +35,7 @@ public class RelayNetworkRoom {
     public final AtomicInteger checkSumReceived = new AtomicInteger();
     public int syncCount = 0;
     public int roomId;
+    public RelayRoomConnection adminConn;
 
     private volatile boolean checkRequested = false;
 
@@ -55,9 +56,10 @@ public class RelayNetworkRoom {
                 roomId, isGaming, isPaused, currentStep, stepRate);
     }
 
-    public RelayNetworkRoom(int id) {
+    public RelayNetworkRoom(int id,RelayRoomConnection adminConn) {
         // 指定房间id
         roomId = id;
+        this.adminConn = adminConn;
         //初始化玩家控制器，连接控制器，和存档管理器
         //playerManager = new PlayerManager(this, Rukkit.getConfig().maxPlayer);
         //connectionManager = new RoomConnectionManager(this);
@@ -65,6 +67,13 @@ public class RelayNetworkRoom {
         //config = Rukkit.getRoundConfig();
         //vote = new Vote(this);
     }
+
+
+
+
+
+
+    //=========================================
 
     public boolean isPaused() {
         return isPaused;
@@ -102,15 +111,6 @@ public class RelayNetworkRoom {
         return isGaming;
     }
 
-    /**
-     * Start a no-stop game.
-     * only works if nonStop config == true
-     */
-//    public void startNoStopGame() {
-//        if (Rukkit.getConfig().nonStopMode) {
-//            gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(), stepRate, stepRate);
-//        }
-//    }
 
     public void changeMapWhileRunning(String mapName, int type) {
         Rukkit.getRoundConfig().mapName = mapName;

@@ -1,0 +1,37 @@
+<configuration>
+    <!-- 文件日志 -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>lastrun.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>[%d{yyyy-MM-dd HH:mm:ss} %level] [%logger{50}]: %msg%n</pattern>
+        </encoder>
+        <!-- 明确设置文件日志级别 -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- 控制台日志（替换原来的TERMINAL） -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%yellow([%d{yyyy-MM-dd HH:mm:ss} %level]) %-5highlight([%logger{0}]): %msg%n</pattern>
+        </encoder>
+        <!-- 明确设置控制台日志级别 -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- 移除自定义TERMINAL appender以避免冲突 -->
+
+    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+
+    <!-- 强化根日志级别设置 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- 额外确保特定包不使用DEBUG -->
+    <logger name="cn.rukkit" level="INFO"/>
+</configuration>

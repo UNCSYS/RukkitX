@@ -1,50 +1,27 @@
 package cn.rukkit.network.core;
 
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.sql.Time;
-
-import javax.xml.crypto.Data;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.rukkit.Rukkit;
-import cn.rukkit.event.Event;
-import cn.rukkit.event.ListenerList;
-import cn.rukkit.event.action.BuildEvent;
-import cn.rukkit.event.action.MoveEvent;
-import cn.rukkit.event.action.PingEvent;
-import cn.rukkit.event.action.TaskEvent;
-import cn.rukkit.event.player.PlayerChatEvent;
-import cn.rukkit.event.player.PlayerJoinEvent;
-import cn.rukkit.event.player.PlayerReconnectEvent;
-import cn.rukkit.event.server.ServerQuestionRespondEvent;
-import cn.rukkit.game.GameActions;
-import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.game.SaveData;
-import cn.rukkit.game.UnitType;
-import cn.rukkit.game.unit.InternalUnit;
-import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
 import cn.rukkit.network.io.GameInputStream;
 import cn.rukkit.network.io.GameOutputStream;
-import cn.rukkit.network.io.GzipDecoder;
-import cn.rukkit.network.io.GzipEncoder;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RelayNetworkRoom;
 import cn.rukkit.network.room.RelayRoomConnection;
-import cn.rukkit.network.room.RoomConnection;
-import cn.rukkit.util.LangUtil;
-import cn.rukkit.util.MathUtil;
+import cn.rukkit.network.room.RelayRoomManager;
 import io.netty.channel.ChannelHandlerContext;
 
 // PacketHandler.java
-public class RelayPacketHandler {
+public class RelayPacketHandler extends PacketHandler {
     private static final Logger log = LoggerFactory.getLogger(RelayPacketHandler.class);
 
-    private final ChannelHandlerContext ctx;
+    private ChannelHandlerContext ctx;
     private final ConnectionHandler handler;
     private Packet packet;
     private RelayRoomConnection conn;
@@ -52,6 +29,7 @@ public class RelayPacketHandler {
     private String disconnectReason;
     public boolean host = true;
     public int connectionType = 1;
+    public static final String SERVER_RELAY_UUID = "Dr (dr@der.kim) & Tiexiu.xyz Core Team";
     // 懒得加一个枚举了 意思如下 以后再改
     /** 链接初始化 */
     // InitialConnection, = 1
@@ -68,20 +46,32 @@ public class RelayPacketHandler {
     // PlayerJoinPermission, =6
     /** 该链接为房间 HOST */
     // HostPermission, =7
+    private final static boolean multicast = false;
 
-    public RelayPacketHandler(ChannelHandlerContext ctx, Object msg, ConnectionHandler handler) {
-        this.ctx = ctx;
-        this.packet = (Packet) msg;
+    public RelayPacketHandler(ConnectionHandler handler) {
         this.handler = handler;
-
-        currentRoom = new RelayNetworkRoom(0);
+        currentRoom = new RelayNetworkRoom(0, null);
         conn = new RelayRoomConnection(handler, currentRoom);
     }
-    public void updateMsg(Object msg){
+
+    @Override
+    public void updateMsg(ChannelHandlerContext ctx, Object msg) {
+        this.ctx = ctx;
         this.packet = (Packet) msg;
+    }
+
+    @Override
+    public void onConnectionClose(ChannelHandlerContext ctx) {
+        log.warn("有一个连接未激活 {}",ctx.toString());
+        // TODO Auto-generated method stub
+        //throw new UnsupportedOperationException("Unimplemented method 'onConnectionClose'");
     }
 
     public void handle() throws Exception {
+        log.info("PacketType" + packet.type + " ConnType" + connectionType);
+        if (packet.type==Packet.PACKET_HEART_BEAT_RESPONSE) {
+            conn.pong();
+        }
         if (relayCheck()) {
             return;
         }
@@ -108,11 +98,12 @@ public class RelayPacketHandler {
 
         // val permissionStatus = con.permissionStatus
 
-        // if (permissionStatus.ordinal >= PlayerPermission.ordinal) {
-        // return false
-        // }
+        // Check if connection is already authenticated
+        if (connectionType >= 5) {
+            return false;
+        }
 
-        if (packet.type == PacketType.PREREGISTER_CONNECTION) {
+        if (connectionType == 1 && packet.type == PacketType.PREREGISTER_CONNECTION) {
             connectionType = 2;// GetPlayerInfo
             conn.setCachePacket(packet);
             GameOutputStream registerServer = new GameOutputStream();
@@ -121,145 +112,217 @@ public class RelayPacketHandler {
             registerServer.writeInt(0);
             registerServer.writeInt(0);
             registerServer.writeString("com.corrodinggames.rts.server");
-            registerServer.writeString("Dr (dr@der.kim) & Tiexiu.xyz Core Team");// SERVER_RELAY_UUID
+            registerServer.writeString(SERVER_RELAY_UUID);// SERVER_RELAY_UUID
             registerServer.writeInt("Dr @ 2022".hashCode());
             ctx.writeAndFlush(registerServer.createPacket(PacketType.REGISTER_CONNECTION));
         } else {
             // 原hps debug包 此处不处理 -OLD: conn.exCommand(packet);
         }
 
-        if (packet.type == PacketType.PLAYER_INFO) {
+        if (connectionType == 2 && packet.type == PacketType.PLAYER_INFO) {
             relayRegisterConnection(packet);
             // Wait Certified
+            connectionType = 3;
             ctx.writeAndFlush(relayServerInitInfoInternalPacket());
-            connectionType = 4; // 如果实现机器人验证 则改为 3
-            // con.sendVerifyClientValidity(); //POW 机器人验证 - 暂时未实现
+            sendVerifyClientValidity(); // POW 机器人验证 - 暂时未实现
             // 没有验证 ->
-            relayDirectInspection(null);
         }
 
-        if (packet.type == PacketType.RELAY_118_117_RETURN) {
+        if (connectionType == 3 && packet.type == PacketType.RELAY_POW_RECEIVE) {
+            if (receiveVerifyClientValidity(packet)) {
+                // Certified End
+                connectionType = 4;
+                relayDirectInspection(null);
+                conn.startPingTask();
+            } else {
+                sendVerifyClientValidity();
+            }
+        }
+
+        if (connectionType == 4 && packet.type == PacketType.RELAY_118_117_RETURN) {
             sendRelayServerTypeReply(packet);
         }
         return true;
     }
 
-    private void relayRegisterConnection(Packet packet) {
+    private void relayRegisterConnection(Packet packet) throws IOException {
         Packet sendPacket = packet;
-        String registerPlayerId = null;
+        String registerPlayerId = conn.registerPlayerId;
 
-        if (registerPlayerId == null) {// 原.isNullOrBlank()
+        if (registerPlayerId == null || registerPlayerId.trim().isEmpty()) {
             try {
                 GameInputStream stream = new GameInputStream(packet);
-                stream.readString();
-                stream.skip(12);
-                String name = stream.readString();
-                stream.readIsString();
-                stream.readString();
-                registerPlayerId = stream.readString();
+                stream.readString(); // server id
+                stream.skip(12); // skip some bytes
+                String name = stream.readString(); // player name
+                stream.readIsString(); // read optional string
+                stream.readString(); // read another string
+                registerPlayerId = stream.readString(); // get player UUID hex
+                conn.registerPlayerId = registerPlayerId;
+                conn.playerName = name;
+
+                log.info(name);
             } catch (Exception e) {
                 log.error("[No UUID-Hex]", e);
+                return;
             }
+        } else if (connectionType >= 5) { // PlayerPermission or higher
+
+            if (connectionType == 5) { /*
+                                        * // PlayerPermission
+                                        * if (!currentRoom.isGaming()) {
+                                        * // Check for duplicate UUID in room
+                                        * for (RelayRoomConnection player : currentRoom.getConnections()) {
+                                        * if (player.getConnectionType() == 6 && // PlayerJoinPermission
+                                        * player.getRegisterPlayerId().equals(registerPlayerId)) {
+                                        * // Kick player with duplicate UUID
+                                        * kick("[UUID Check] HEX 重复, 换个房间试试");
+                                        * return;
+                                        * }
+                                        * }
+                                        * }
+                                        * 
+                                        * // Create player data if not exists
+                                        * if (conn.getPlayerRelay() == null) {
+                                        * PlayerRelay playerRelay =
+                                        * currentRoom.getRelayPlayersData().get(registerPlayerId);
+                                        * if (playerRelay == null) {
+                                        * playerRelay = new PlayerRelay(conn, registerPlayerId, conn.getName());
+                                        * currentRoom.getRelayPlayersData().put(registerPlayerId, playerRelay);
+                                        * }
+                                        * playerRelay.setNowName(conn.getName());
+                                        * playerRelay.setDisconnect(false);
+                                        * playerRelay.setConnection(conn);
+                                        * conn.setPlayerRelay(playerRelay);
+                                        * }
+                                        * 
+                                        * // Check bans
+                                        * if (currentRoom.getRelayKickData().containsKey("BAN" + conn.getIp())) {
+                                        * kick("[BAN] 您被这个房间BAN了 请换一个房间");
+                                        * return;
+                                        * }
+                                        * 
+                                        * // Check kicks
+                                        * Integer time = currentRoom.getRelayKickData().get("KICK" + registerPlayerId);
+                                        * if (time == null) {
+                                        * time = currentRoom.getRelayKickData().get("KICK" + conn.getIpLong24());
+                                        * }
+                                        * 
+                                        * if (time != null) {
+                                        * if (time > System.currentTimeMillis() / 1000) {
+                                        * kick("[踢出等待] 您被这个房间踢出了 请稍等一段时间 或者换一个房间");
+                                        * return;
+                                        * } else {
+                                        * currentRoom.getRelayKickData().remove("KICK" + registerPlayerId);
+                                        * currentRoom.getRelayKickData().remove("KICK" + conn.getIpLong24());
+                                        * }
+                                        * }
+                                        * 
+                                        * if (currentRoom.isGaming()) {
+                                        * if (!currentRoom.isSyncFlag()) {
+                                        * kick("[Sync Lock] 这个房间拒绝重连");
+                                        * return;
+                                        * }
+                                        * 
+                                        * // TODO: Implement sync count check
+                                        * // This would require implementing PlayerSyncCount class
+                                        * }
+                                        */
+            }
+
+            // Handle player replacement in ongoing game
+            if (currentRoom.isGaming()) {/*
+                                          * if (!currentRoom.getReplacePlayerHex().isEmpty()) {
+                                          * conn.setReplacePlayerHex(currentRoom.getReplacePlayerHex());
+                                          * currentRoom.setReplacePlayerHex("");
+                                          * currentRoom.sendMsg("玩家 " + conn.getName() + ", 取代了旧玩家");
+                                          * }
+                                          * if (!conn.getReplacePlayerHex().isEmpty()) {
+                                          * GameOutputStream out = new GameOutputStream();
+                                          * GameInputStream stream = new GameInputStream(packet);
+                                          * out.writeString(stream.readString());
+                                          * out.transferToFixedLength(stream, 12);
+                                          * out.writeString(stream.readString());
+                                          * out.writeIsString(stream);
+                                          * out.writeString(stream.readString());
+                                          * out.writeString(conn.getReplacePlayerHex());
+                                          * stream.readString();
+                                          * out.transferTo(stream);
+                                          * sendPacket = out.createPacket(PacketType.PLAYER_INFO);
+                                          * }
+                                          */
+            }
+
+            connectionType = 6; // PlayerJoinPermission
+            sendPackageToHOST(sendPacket);
         }
-        // 此处代码未完成 ============================= TODO: finish this ！！
-        /*
-         * else if (permissionStatus.ordinal >= RelayStatus.PlayerPermission.ordinal) {
-         * if (permissionStatus == RelayStatus.PlayerPermission) {
-         * if (!currentRoom.isStartGame()) {
-         * currentRoom.abstractNetConnectIntMap.forEach((key, player) -> {
-         * if (player.getPermissionStatus() == RelayStatus.PlayerJoinPermission &&
-         * player.getRegisterPlayerId().equals(registerPlayerId)) {
-         * //
-         * // 通过检测房间已有的 UUID-Hex, 来激进的解决一些问题
-         * //
-         * // Luke 对此的回答 :
-         * // True might make more sense, but a connection might be stale for a bit need
-         * to be careful with that.
-         * // example just after a crash
-         * //
-         * // kick("[UUID Check] HEX 重复, 换个房间试试");
-         * return true;
-         * }
-         * return false;
-         * });
-         * return;
-         * }
-         * 
-         * // 这里的代码任然未完成同步 ======================== TODO: Finish this!
-         * 
-         * // Relay-EX
-         * if (playerRelay == null) {
-         * playerRelay = room!!.relayPlayersData[registerPlayerId] ?: PlayerRelay(this,
-         * registerPlayerId!!, name).also {
-         * room!!.relayPlayersData[registerPlayerId!!] = it
-         * }
-         * playerRelay!!.nowName = name
-         * playerRelay!!.disconnect = false
-         * playerRelay!!.con = this
-         * }
-         * 
-         * if (room!!.relayKickData.containsKey("BAN$ip")) {
-         * kick("[BAN] 您被这个房间BAN了 请换一个房间")
-         * return
-         * }
-         * 
-         * val time: Int? = room!!.relayKickData["KICK$registerPlayerId"].ifNullResult(
-         * currentRoom!!.relayKickData["KICK${connectionAgreement.ipLong24}"]
-         * ) { null }
-         * 
-         * if (time != null) {
-         * if (time > Time.concurrentSecond()) {
-         * kick("[踢出等待] 您被这个房间踢出了 请稍等一段时间 或者换一个房间")
-         * return
-         * } else {
-         * room!!.relayKickData.remove("KICK$registerPlayerId")
-         * room!!.relayKickData.remove("KICK${connectionAgreement.ipLong24}")
-         * }
-         * }
-         * 
-         * if (currentRoom.isStartGame) {
-         * if (!currentRoom.syncFlag) {
-         * kick("[Sync Lock] 这个房间拒绝重连")
-         * return
-         * }
-         * 
-         * // TODO: 完成同步数量检查
-         * // if (playerRelay.playerSyncCount.checkStatus()) {
-         * // playerRelay.playerSyncCount.count++
-         * // } else {
-         * // room!!.relayKickData["KICK$registerPlayerId"] = 300
-         * // kick("[同步检测] 您同步次数太多 请稍等一段时间 或者换一个房间")
-         * // return
-         * // }
-         * }
-         * }
-         * 
-         * if (conn.currectRoom.isGaming()) {
-         * if (room.replacePlayerHex != "") {
-         * replacePlayerHex = room.replacePlayerHex;
-         * room.replacePlayerHex = "";
-         * room.sendMsg("玩家 $name, 取代了旧玩家");
-         * }
-         * if (replacePlayerHex != "") {
-         * GameOutputStream out = new GameOutputStream();
-         * GameInputStream stream = new GameInputStream(packet);
-         * out.writeString(stream.readString());
-         * out.transferToFixedLength(stream, 12);
-         * out.writeString(stream.readString());
-         * out.writeIsString(stream);
-         * out.writeString(stream.readString());
-         * out.writeString(replacePlayerHex);
-         * stream.readString();
-         * out.transferTo(stream);
-         * sendPacket = out.createPacket(PacketType.REGISTER_PLAYER);
-         * 
-         * }
-         * }
-         * 
-         * connectionType = 6; //PlayerJoinPermission
-         * //sendPackageToHOST(sendPacket);
-         * }
-         */
+    }
+
+    private static NetConnectProofOfWork netConnectAuthenticate = new NetConnectProofOfWork();
+
+    public void sendVerifyClientValidity() {
+        int authenticateType = netConnectAuthenticate.getAuthenticateType();
+        try {
+            GameOutputStream o = new GameOutputStream();
+            o.writeInt(netConnectAuthenticate.getResultInt());
+            o.writeInt(authenticateType);
+
+            if (authenticateType == 0 || (authenticateType >= 2 && authenticateType <= 4) || authenticateType == 6) {
+                o.writeBoolean(true);
+                o.writeInt(netConnectAuthenticate.getInitInt_1());
+            } else {
+                o.writeBoolean(false);
+            }
+
+            if (authenticateType == 1 || (authenticateType >= 2 && authenticateType <= 4)) {
+                o.writeBoolean(true);
+                o.writeInt(netConnectAuthenticate.getInitInt_2());
+            } else {
+                o.writeBoolean(false);
+            }
+
+            if (authenticateType >= 5 && authenticateType <= 6) {
+                o.writeString(netConnectAuthenticate.getOutcome());
+                o.writeString(netConnectAuthenticate.getFixedInitial());
+                o.writeInt(netConnectAuthenticate.getMaximumNumberOfCalculations());
+            }
+
+            o.writeBoolean(false);
+            ctx.writeAndFlush(o.createPacket(PacketType.RELAY_POW));
+        } catch (Exception e) {
+        }
+    }
+
+    public boolean receiveVerifyClientValidity(Packet packet) throws IOException {
+        GameInputStream inStream = new GameInputStream(packet);
+        if (netConnectAuthenticate != null) {
+            if (netConnectAuthenticate.verifyPOWResult(
+                    inStream.readInt(),
+                    inStream.readInt(),
+                    inStream.readString())) {
+                netConnectAuthenticate = new NetConnectProofOfWork(); //= null
+                return true;
+            }
+        } else {
+            // Ignore, Under normal circumstances, it should not reach here,
+            // and the processor will handle it
+        }
+        // Ignore, There should be no errors in this part,
+        // errors will only come from constructing false error packets
+        return false;
+    }
+
+    private void sendPackageToHOST(Packet packet) throws IOException {/*
+                                                                       * GameOutputStream o = new GameOutputStream();
+                                                                       * o.writeInt(conn.getSite());
+                                                                       * o.writeInt(packet.bytes.length + 8);
+                                                                       * o.writeInt(packet.bytes.length);
+                                                                       * o.writeBytes(packet.type.typeIntBytes);
+                                                                       * o.writeBytes(packet.bytes);
+                                                                       * currentRoom.getAdmin().getCtx().writeAndFlush(o
+                                                                       * .createPacket(PacketType.
+                                                                       * PACKET_FORWARD_CLIENT_FROM));
+                                                                       */
     }
 
     private static Packet relayServerInitInfoInternalPacket() throws IOException {
@@ -283,14 +346,15 @@ public class RelayPacketHandler {
 
     }
 
-    Packet relayServerTypeInternal(String msg) throws IOException {
+    void sendRelayServerTypeInternal(String msg) throws IOException {
         GameOutputStream o = new GameOutputStream();
         // Theoretically random numbers?
         o.writeByte(1);
-        o.writeInt(5); // 可能和-AX一样
+        o.writeInt(5); // 可能和-AX一样 // QuestionID
         // Msg
         o.writeString(msg);
-        return o.createPacket(PacketType.RELAY_117); /// -> 118
+        log.info("============debug 1");
+        ctx.writeAndFlush(o.createPacket(PacketType.RELAY_117)); /// -> 118
     }
 
     private static boolean isBlank(Object string) {
@@ -317,9 +381,11 @@ public class RelayPacketHandler {
             // Player Name
             inStream.readString();
         }
+
+        log.info("============debug rdi room=null is-{}", relayRoom == null);
         if (relayRoom == null) {
             if (isBlank(queryString) || "RELAYCN".equalsIgnoreCase(queryString)) {
-                relayServerTypeInternal("[Relay CN+ #0] 这台服务器是CN非官方的Relay房间 ");// Data.SERVER_CORE_VERSION
+                sendRelayServerTypeInternal("[Relay CN+ #0] 这台服务器是CN非官方的Relay房间");// Data.SERVER_CORE_VERSION
                 relaySelect = "3.0.0";
             } else {
                 idCustom(queryString);
@@ -334,6 +400,7 @@ public class RelayPacketHandler {
         try {
 
             String id = relayServerTypeReplyInternalPacket(packet);
+            log.info("debug Question Responed {}",id);
             if (relaySelect == null) {
                 idCustom(id);
             } else {
@@ -343,7 +410,7 @@ public class RelayPacketHandler {
         }
     }
 
-    Packet fromRelayJumpsToAnotherServerInternalPacket(String ip) throws IOException {
+    private Packet fromRelayJumpsToAnotherServerInternalPacket(String ip) throws IOException {
         GameOutputStream o = new GameOutputStream();
         // The message contained in the package
         o.writeByte(0);
@@ -358,163 +425,215 @@ public class RelayPacketHandler {
         return o.createPacket(PacketType.PACKET_RECONNECT_TO);
     }
 
-    private void idCustom(String inId) {
-        /*
-         * // 过滤 制表符 空格 换行符
-         * String id = inId.replaceAll("\\s", "");
-         * if ("old".equalsIgnoreCase(id)) {
-         * id = RelayRoom.serverRelayOld.get(registerPlayerId, "");
-         * } else {
-         * RelayRoom.serverRelayOld.put(registerPlayerId, id);
-         * }
-         * 
-         * if (id.isEmpty()) {
-         * relayServerTypeInternal("什么都没有输入");
-         * return;
-         * }
-         * if (EmojiManager.containsEmoji(id)) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.server.error.id",
-         * "不能使用Emoji"));
-         * return;
-         * }
-         * 
-         * if (idDistribute(id)) {
-         * if (Data.configRelay.mainServer) {
-         * //挑转包
-         * sendPacket(fromRelayJumpsToAnotherServerInternalPacket("127.0.0.1"));//原id.
-         * charAt(1) + ".relay.rwhps.net/" + id
-         * return;
-         * } else {
-         * id = id.substring(2);
-         * }
-         * } else if ("R".equalsIgnoreCase(String.valueOf(id.charAt(0)))) {
-         * id = id.substring(1);
-         * }
-         * 
-         * if (id.isEmpty()) {
-         * relayServerTypeInternal("你输入为空 输入new");
-         * return;
-         * }
-         * 
-         * boolean uplist = false;
-         * boolean mods = id.toLowerCase().contains("mod");
-         * String customId = "";
-         * boolean newRoom = true;
-         * 
-         * if ("C".equalsIgnoreCase(String.valueOf(id.charAt(0)))) {
-         * id = id.substring(1);
-         * if (id.isEmpty()) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.id.re"));
-         * return;
-         * }
-         * 
-         * String[] ary = id.split("@");
-         * id = ary.length > 1 ? ary[1] : "";
-         * customId = ary[0];
-         * 
-         * if ("M".equalsIgnoreCase(String.valueOf(customId.charAt(0)))) {
-         * customId = customId.substring(1);
-         * if (!checkLength(customId)) {
-         * return;
-         * }
-         * if (RelayRoom.getCheckRelay(customId) || idDistribute("R" + customId)) {
-         * relayServerTypeInternal("太长或者太短");
-         * return;
-         * }
-         * mods = true;
-         * } else {
-         * if (!checkLength(customId)) {
-         * return;
-         * }
-         * if (RelayRoom.getCheckRelay(customId) || idDistribute("R" + customId)) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.id.re"));
-         * return;
-         * }
-         * }
-         * } else {
-         * if (id.toLowerCase().startsWith("news") ||
-         * id.toLowerCase().startsWith("mods")) {
-         * id = id.substring(4);
-         * } else if (id.toLowerCase().startsWith("new") ||
-         * id.toLowerCase().startsWith("mod")) {
-         * id = id.substring(3);
-         * } else {
-         * newRoom = false;
-         * }
-         * }
-         * 
-         * if (newRoom) {
-         * CustomRelayData custom = new CustomRelayData();
-         * 
-         * try {
-         * if (id.toUpperCase().startsWith("P")) {
-         * id = id.substring(1);
-         * String[] arry = id.contains("，") ? id.split("，") : id.split(",");
-         * custom.maxPlayerSize = Integer.parseInt(arry[0]);
-         * if (custom.maxPlayerSize < 0 || custom.maxPlayerSize > 100) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.id.maxPlayer.re"));
-         * return;
-         * }
-         * if (arry.length > 1) {
-         * if (arry[1].toUpperCase().contains("I")) {
-         * String[] ay = arry[1].split("(?i)I");
-         * if (ay.length > 1) {
-         * custom.maxUnitSizt = Integer.parseInt(ay[0]);
-         * custom.income = Float.parseFloat(ay[1]);
-         * } else {
-         * custom.income = Float.parseFloat(ay[0]);
-         * }
-         * } else {
-         * custom.maxUnitSizt = Integer.parseInt(arry[1]);
-         * }
-         * if (custom.maxUnitSizt < 0) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.id.maxUnit.re"));
-         * return;
-         * }
-         * }
-         * }
-         * if (id.toUpperCase().startsWith("I")) {
-         * id = id.substring(1);
-         * String[] arry = id.contains("，") ? id.split("，") : id.split(",");
-         * custom.income = Float.parseFloat(arry[0]);
-         * if (custom.income < 0) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.id.income.re"));
-         * return;
-         * }
-         * }
-         * } catch (NumberFormatException e) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.server.error",
-         * e.getMessage()));
-         * return;
-         * }
-         * 
-         * newRelayId(customId, mods, custom);
-         * if (custom.maxPlayerSize != -1 || custom.maxUnitSizt != 200) {
-         * sendPacket(
-         * rwHps.abstractNetPacket.getChatMessagePacket(
-         * "自定义人数: " + custom.maxPlayerSize + " 自定义单位: " + custom.maxUnitSizt,
-         * "RELAY_CN-Custom",
-         * 5));
-         * }
-         * } else {
-         * try {
-         * if (id.contains(".")) {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.server.error",
-         * "不能包含 [ . ]"));
-         * return;
-         * }
-         * room = RelayRoom.getRelay(id);
-         * if (room != null) {
-         * addRelayConnect();
-         * } else {
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.server.no", id));
-         * }
-         * } catch (Exception e) {
-         * debug(e);
-         * relayServerTypeInternal(Data.i18NBundle.getinput("relay.server.error",
-         * e.getMessage()));
-         * }
-         * }
-         */
+    private void idCustom(String inId) throws IOException {
+        // 过滤制表符、空格、换行符
+        String id = inId.replaceAll("\\s", "");
+
+        // 处理"old"关键字
+        // if ("old".equalsIgnoreCase(id)) {
+        // id = RelayRoom.serverRelayOld.getOrDefault(registerPlayerId, "");
+        // } else {
+        // RelayRoom.serverRelayOld.put(registerPlayerId, id);
+        // }
+
+        if (id.isEmpty()) {
+            sendRelayServerTypeInternal("[提示] 请输入房间ID或'new'创建新房间");
+            return;
+        }
+
+        // 检查Emoji
+        if (containsEmoji(id)) {
+            sendRelayServerTypeInternal("[错误] 不能使用Emoji");
+            return;
+        }
+
+        // 新建房间逻辑
+        if (id.equalsIgnoreCase("new")) {
+            createNewRoom();
+            return;
+        }
+
+        // 加入现有房间逻辑
+        try {
+            if (id.contains(".")) {
+                sendRelayServerTypeInternal("[错误] ID不能包含点号(.)");
+                return;
+            }
+
+            if (RelayRoomManager.containsRoom(Integer.parseInt(id))) {
+                // addRelayConnect(room);
+                currentRoom = RelayRoomManager.getRoom(Integer.parseInt(id));
+                connectionType = 6;
+            } else {
+                sendRelayServerTypeInternal("[错误] 找不到房间: " + id);
+            }
+        } catch (Exception e) {
+            log.debug("Error finding relay room", e);
+            sendRelayServerTypeInternal("[错误] " + e.getMessage());
+        }
+    }
+
+    private void addRelayConnect() {
+
+    }
+
+    // 创建新房间
+    private void createNewRoom() throws IOException {
+        try {
+            // 由服务器自动生成房间ID
+            currentRoom = new RelayNetworkRoom(10000, this.conn);
+            RelayRoomManager.addRelayRoom(currentRoom);
+
+            // 发送成功消息
+            sendRelayServerTypeInternal("[成功] 已创建新房间，ID: " + currentRoom.roomId);
+
+            // 设置默认参数
+            sendDefaultRoomSettings();
+
+            // 设置为房主
+            sendRelayServerId();
+        } catch (Exception e) {
+            log.error("Failed to create new room", e);
+            sendRelayServerTypeInternal("[错误] 创建房间失败: " + e.getMessage());
+        }
+    }
+
+    private static int clientVersion = 151;
+
+    // 发送默认房间设置
+    private void sendDefaultRoomSettings() {
+        try {
+            // 发送基本注册信息
+            GameOutputStream registerServer = new GameOutputStream();
+            registerServer.writeString("net.rwhps.server");
+            registerServer.writeInt(1);
+            registerServer.writeInt(clientVersion);
+            registerServer.writeInt(clientVersion);
+            registerServer.writeString("com.corrodinggames.rts.server");
+            registerServer.writeString(SERVER_RELAY_UUID);
+            registerServer.writeInt("Dr @ 2022".hashCode());
+            ctx.writeAndFlush(registerServer.createPacket(PacketType.REGISTER_CONNECTION));
+
+            // 发送服务器信息
+            GameOutputStream serverInfo = new GameOutputStream();
+            serverInfo.writeString("net.rwhps.server.relay");
+            serverInfo.writeInt(clientVersion);
+            serverInfo.writeInt(1); // MapType.CustomMap
+            serverInfo.writeString("RW-HPS RELAY 默认房间");
+            serverInfo.writeInt(0); // credits
+            serverInfo.writeInt(2); // mist
+            serverInfo.writeBoolean(true);
+            serverInfo.writeInt(1);
+            serverInfo.writeByte(0);
+            serverInfo.writeBoolean(false);
+            serverInfo.writeBoolean(false);
+            ctx.writeAndFlush(serverInfo.createPacket(PacketType.SERVER_INFO));
+
+            // 发送默认队伍设置
+            GameOutputStream teamList = new GameOutputStream();
+            teamList.writeInt(0);
+            teamList.writeBoolean(false);
+            teamList.writeInt(10); // 默认10玩家
+            byte[] teamsData = new byte[10]; // 10个玩家的初始数据
+            Arrays.fill(teamsData, (byte) 0);
+            teamList.write(teamsData);
+            teamList.writeInt(2); // mist
+            teamList.writeInt(0); // credits
+            teamList.writeBoolean(true);
+            teamList.writeInt(1);
+            teamList.writeByte(5);
+            teamList.writeInt(200); // 默认200单位
+            teamList.writeInt(200);
+            teamList.writeInt(1); // initUnit
+            teamList.writeFloat(1.0f); // 默认1.0收入
+            teamList.writeBoolean(true); // Ban nuke
+            teamList.writeBoolean(false);
+            teamList.writeBoolean(false);
+            teamList.writeBoolean(false); // sharedControl
+            teamList.writeBoolean(false); // gamePaused
+            ctx.writeAndFlush(teamList.createPacket(PacketType.TEAM_LIST));
+
+            // 发送欢迎消息
+            ctx.writeAndFlush(Packet.chat(
+                    "欢迎来到RW-HPS RELAY服务器",
+                    "系统",
+                    5));
+        } catch (IOException e) {
+            log.error("Failed to send default room settings", e);
+        }
+    }
+
+    // 辅助方法保持不变
+    private boolean idDistribute(String id) {
+        return false;
+    }
+
+    private boolean containsEmoji(String input) {
+        return input.matches(".*[\\p{So}].*");
+    }
+
+    public void sendRelayServerId() throws IOException {
+        // 确保连接已准备好
+        // connectReceiveData.setInputPassword(false);
+
+        if (currentRoom == null) {
+            log.info("sendRelayServerId -> relay : null");
+            // currentRoom = NetStaticData.getRelayRoom();
+        }
+
+        // 如果已有位置(site != -1)，先移除旧连接
+        // if (site != -1) {
+        // currentRoom.removeAbstractNetConnect(site);
+        // // -2 表示这是第二任房主
+        // site = -2;
+        // }
+
+        // 设置当前连接为房主
+        currentRoom.adminConn = this.conn;
+        host = true;
+        connectionType = 7; // HostPermission
+
+        boolean isPublic = false; // 默认房间不公开
+        GameOutputStream o = new GameOutputStream();
+
+        if (clientVersion >= 172) {
+            // 新协议版本(172+)的数据包格式
+            o.writeByte(2);
+            o.writeBoolean(true); // allowThisConnectionForwarding
+            o.writeBoolean(true); // removeThisConnection
+            o.writeBoolean(true); // ?
+            o.writeString(SERVER_RELAY_UUID);
+            o.writeBoolean(false); // MOD标记
+            o.writeBoolean(isPublic); // 是否公开
+            o.writeBoolean(true); // ?
+            o.writeString(
+                    "{{RELAY-CN}} Room ID : (未完成) \n" +
+                            "你的房间是 <" + (isPublic ? "开放" : "隐藏") + "> 在列表\n" +
+                            "This Server Use RW-HPS Project (Test)");
+            o.writeBoolean(multicast); // 是否使用组播
+            o.writeIsString(conn.registerPlayerId); // 注册玩家ID
+        } else {
+            // 旧协议版本的数据包格式
+            o.writeByte(1);
+            o.writeBoolean(true); // allowThisConnectionForwarding
+            o.writeBoolean(true); // removeThisConnection
+            o.writeIsString(SERVER_RELAY_UUID); // 服务器UUID
+            o.writeBoolean(false); // MOD标记
+            o.writeBoolean(isPublic); // 是否公开
+            o.writeString(
+                    "{{RELAY-CN}} Room ID : (未完成) \n" +
+                            "你的房间是 <" + (isPublic ? "开放" : "隐藏") + "> 在列表\n" +
+                            "This Server Use RW-HPS Project");
+            o.writeBoolean(multicast); // 是否使用组播
+        }
+
+        // 发送RELAY_BECOME_SERVER数据包
+        ctx.writeAndFlush(o.createPacket(PacketType.RELAY_BECOME_SERVER));
+
+        // 禁止玩家使用 Server/Relay 做玩家名
+        if (conn.playerName.equalsIgnoreCase("SERVER") || conn.playerName.equalsIgnoreCase("RELAY")) {
+            // currentRoom.closeRoom(); // 关闭房间
+            log.error("有人使用了SEVR作为玩家名字");
+        }
     }
 }

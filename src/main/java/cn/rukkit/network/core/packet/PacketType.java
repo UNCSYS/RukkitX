@@ -34,7 +34,7 @@ public class PacketType{
     public static final int RELAY_POW = 151;
     public static final int RELAY_POW_RECEIVE = 152;
 
-    public static final int RELAY_VERSION_INFO = 163;
+    public static final int RELAY_VERSION_INFO = 163;//A3
     public static final int RELAY_BECOME_SERVER = 170;
     public static final int FORWARD_CLIENT_ADD = 172;
     public static final int FORWARD_CLIENT_REMOVE = 173;

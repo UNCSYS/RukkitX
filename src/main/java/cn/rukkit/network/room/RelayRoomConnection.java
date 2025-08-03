@@ -35,10 +35,14 @@ public class RelayRoomConnection {
 	public boolean isStartGame;
 	public boolean syncFlag = true; 
 	public int numberOfDesyncError = 0;
+	public int ping = -1;
+
 
 	private ScheduledFuture pingFuture;
 	private ScheduledFuture teamFuture;
     public Packet cachePacket;//RW-HPS有 那就加上吧
+	public String registerPlayerId;
+	public String playerName;
 
 	public void setCachePacket(Packet p){
 		cachePacket = p;
@@ -253,6 +257,6 @@ public class RelayRoomConnection {
 	 * 心跳包返回
 	 */
 	public void pong() {
-		player.ping = (int) (System.currentTimeMillis() - pingTime);
+		ping = (int) (System.currentTimeMillis() - pingTime);
 	}
 }

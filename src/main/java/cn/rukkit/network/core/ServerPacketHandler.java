@@ -2,6 +2,7 @@ package cn.rukkit.network.core;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,19 +80,47 @@ public class ServerPacketHandler extends PacketHandler {
 
 	@Override
 	public void handle() throws Exception {
-		channelRead(ctx, this.p);
-	}
-
-	private void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-		GameInputStream in = new GameInputStream(p);
 		switch (p.type) {
 			case Packet.PACKET_PREREGISTER_CONNECTION:
-				log.debug("New connection established:{}", ctx.channel().remoteAddress());
-				ctx.write(p.preRegister());
-				ctx.writeAndFlush(p.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
+				preRegisterHandler();
 				break;
-			case Packet.PACKET_PLAYER_INFO:
-				String packageName = in.readString();
+			case Packet.PACKET_HEART_BEAT_RESPONSE:
+				heartResponsePacketHandler();
+				break;
+			case Packet.PACKET_ADD_CHAT:
+				addChatPacketHandler();
+				break;
+			case Packet.PACKET_ADD_GAMECOMMAND:
+				addChatPacketHandler();
+				break;
+			case Packet.PACKET_RANDY:
+				playerReadyPacketHandler();
+				break;
+			case Packet.PACKET_SYNC:
+				syncPacketHandler();
+			case Packet.PACKET_SYNC_CHECKSUM_RESPONCE:
+				syncChecksumResponcePacketHandler();
+				break;
+			case Packet.PACKET_DISCONNECT:
+				disconnectPacketHandler();
+				break;
+			case Packet.PACKET_QUESTION_RESPONCE:
+				questionResponcePacketHandler();
+				break;
+			default:
+				break;
+		}
+	}
+
+	//=============== 实际对封包处理 =================//
+	private void preRegisterHandler() throws IOException{
+		log.debug("New connection established:{}", ctx.channel().remoteAddress());
+		ctx.write(p.preRegister());
+		ctx.writeAndFlush(p.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
+	}
+	private void playerInfoPacketHandler() throws IOException{
+		GameInputStream in = new GameInputStream(p);
+						String packageName = in.readString();
 				log.debug("Ints:" + in.readInt());
 				int gameVersionCode = in.readInt();
 				in.readInt();
@@ -237,12 +266,13 @@ public class ServerPacketHandler extends PacketHandler {
 					handler.stopTimeout();
 					PlayerJoinEvent.getListenerList().callListeners(new PlayerJoinEvent(conn.player));
 				}
+	}
 
-				break;
-			case Packet.PACKET_HEART_BEAT_RESPONSE:
+	private void heartResponsePacketHandler() throws IOException{
 				conn.pong();
-				break;
-			case Packet.PACKET_ADD_CHAT:
+	}
+	private void addChatPacketHandler() throws IOException{
+		GameInputStream in = new GameInputStream(p);
 				String chatmsg = in.readString();
 				if (chatmsg.startsWith(".") || chatmsg.startsWith("-") || chatmsg.startsWith("_")) {
 					Rukkit.getCommandManager().executeChatCommand(conn, chatmsg.substring(1));
@@ -252,9 +282,10 @@ public class ServerPacketHandler extends PacketHandler {
 								.broadcast(p.chat(conn.player.name, chatmsg, conn.player.playerIndex));
 					}
 				}
-				break;
-			case Packet.PACKET_ADD_GAMECOMMAND:
-				GameCommand cmd = new GameCommand();
+	}
+	private void addGameCommandPacketHandler() throws IOException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException{
+		GameInputStream in = new GameInputStream(p);
+						GameCommand cmd = new GameCommand();
 				cmd.arr = in.getDecodeBytes();
 				// conn.sendGameCommand(cmd);
 				GameInputStream str = new GameInputStream(cmd.arr);
@@ -579,12 +610,15 @@ public class ServerPacketHandler extends PacketHandler {
 				} else {
 					conn.sendGameCommand(cmd);
 				}
-				break;
-			case Packet.PACKET_RANDY:
+	}
+
+	private void playerReadyPacketHandler(){
+
 				currentRoom.connectionManager
 						.broadcastServerMessage(String.format("Player '%s' is randy.", conn.player.name));
-				break;
-			case Packet.PACKET_SYNC:
+	}
+	private void syncPacketHandler() throws IOException{
+		GameInputStream in = new GameInputStream(p);
 				in.readByte();
 				int frame = in.readInt();
 				int time = in.readInt() / 15;
@@ -597,50 +631,41 @@ public class ServerPacketHandler extends PacketHandler {
 					data.time = time;
 					conn.save = data;
 				}
-				break;
-			case Packet.PACKET_SYNC_CHECKSUM_RESPONCE:
+
+	}
+	private void syncChecksumResponcePacketHandler() throws IOException{
+		GameInputStream in = new GameInputStream(p);
 				in.readByte();
-				int serverTick = in.readInt();
-				int clientTick = in.readInt();
-				log.info("[{}] Server tick: {}, Client tick: {}", conn.player.name, serverTick, clientTick);
-				conn.lastSyncTick = clientTick;
-				if (in.readBoolean()) {
-					log.info("Player {} send checksum!", conn.player.name);
-					in.readLong();
-					in.readLong();
-					DataInputStream din = in.getUnDecodeStream();
-					din.readInt();
-					int checkSumConut = din.readInt();
-					log.debug("Total checksum: {}", checkSumConut);
-					for (int i = 0; i < checkSumConut; i++) {
-						din.readLong();
-						long clientCheckData = din.readLong();
-						log.trace("{}: client={}", conn.player.checkList.get(i).getDescription(), clientCheckData);
-						conn.player.checkList.get(i).setCheckData(clientCheckData);
-					}
-					conn.currectRoom.checkSumReceived.incrementAndGet();
-					conn.checkSumSent = true;
-					synchronized (conn.currectRoom.checkSumReceived) {
-						conn.currectRoom.checkSumReceived.notifyAll();
-					}
-				} else {
-					log.info("Player {} did'n send checksum!We can sent back again!", conn.player.name);
-					conn.doChecksum();
+				int frame = in.readInt();
+				int time = in.readInt() / 15;
+				log.debug("{}, {}, {}, {}", in.readFloat(), in.readFloat(), in.readBoolean(), in.readBoolean());
+				byte[] save = new byte[in.stream.available()];
+				in.stream.read(save);
+				if (save.length > 20) {
+					SaveData data = new SaveData();
+					data.arr = save;
+					data.time = time;
+					conn.save = data;
 				}
 
-				break;
-			case Packet.PACKET_DISCONNECT:
+	}
+	private void disconnectPacketHandler() throws IOException{
+		GameInputStream in = new GameInputStream(p);
+		
 				String reason = in.readString();
 				disconnectReason = reason;
 				// Disconnects gracefully.
 				ctx.disconnect();
-				break;
-			case Packet.PACKET_QUESTION_RESPONCE:
+
+	}
+	private void questionResponcePacketHandler() throws IOException{
+		GameInputStream in = new GameInputStream(p);
+		
 				in.readByte(); // Always 1;
 				int qid = in.readInt();
 				String response = in.readString();
 				ServerQuestionRespondEvent.getListenerList()
 						.callListeners(new ServerQuestionRespondEvent(conn.player, qid, response));
-		}
+
 	}
 }

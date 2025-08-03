@@ -22,6 +22,10 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
+
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +57,7 @@ public class RoomGameServer {
                         @Override
                         protected void initChannel(SocketChannel p1) throws Exception {
                             // TODO: Implement this method
+                            //p1.pipeline().addLast(new IdleStateHandler(10, 10, 10, TimeUnit.SECONDS));
                             p1.pipeline().addLast(new PacketDecoder());
                             p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler());
                         }
