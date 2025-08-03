@@ -3,6 +3,7 @@ package cn.rukkit.network.core;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.jline.utils.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ public class RelayPacketHandler extends PacketHandler {
     private RelayNetworkRoom currentRoom;
     private String disconnectReason;
     public boolean host = true;
+    private int site =-1;
     public int connectionType = 1;
     public static final String SERVER_RELAY_UUID = "Dr (dr@der.kim) & Tiexiu.xyz Core Team";
     // 懒得加一个枚举了 意思如下 以后再改
@@ -76,10 +78,10 @@ public class RelayPacketHandler extends PacketHandler {
             return;
         }
         GameInputStream in = new GameInputStream(packet);
-        if (host) {
+        if (host && connectionType==7) {
             switch (packet.type) {
                 case PacketType.PREREGISTER_CONNECTION:
-                    //
+                    //-
                     break;
             }
         } else {
@@ -131,9 +133,9 @@ public class RelayPacketHandler extends PacketHandler {
         if (connectionType == 3 && packet.type == PacketType.RELAY_POW_RECEIVE) {
             if (receiveVerifyClientValidity(packet)) {
                 // Certified End
-                connectionType = 4;
-                relayDirectInspection(null);
+                relayDirectInspection();
                 conn.startPingTask();
+                connectionType = 4;
             } else {
                 sendVerifyClientValidity();
             }
@@ -254,13 +256,14 @@ public class RelayPacketHandler extends PacketHandler {
             }
 
             connectionType = 6; // PlayerJoinPermission
-            sendPackageToHOST(sendPacket);
+            currentRoom.sendPackageToHOST(sendPacket);
         }
     }
 
-    private static NetConnectProofOfWork netConnectAuthenticate = new NetConnectProofOfWork();
+    private NetConnectProofOfWork netConnectAuthenticate;
 
     public void sendVerifyClientValidity() {
+        netConnectAuthenticate = new NetConnectProofOfWork();
         int authenticateType = netConnectAuthenticate.getAuthenticateType();
         try {
             GameOutputStream o = new GameOutputStream();
@@ -300,7 +303,7 @@ public class RelayPacketHandler extends PacketHandler {
                     inStream.readInt(),
                     inStream.readInt(),
                     inStream.readString())) {
-                netConnectAuthenticate = new NetConnectProofOfWork(); //= null
+                netConnectAuthenticate = null;
                 return true;
             }
         } else {
@@ -312,18 +315,6 @@ public class RelayPacketHandler extends PacketHandler {
         return false;
     }
 
-    private void sendPackageToHOST(Packet packet) throws IOException {/*
-                                                                       * GameOutputStream o = new GameOutputStream();
-                                                                       * o.writeInt(conn.getSite());
-                                                                       * o.writeInt(packet.bytes.length + 8);
-                                                                       * o.writeInt(packet.bytes.length);
-                                                                       * o.writeBytes(packet.type.typeIntBytes);
-                                                                       * o.writeBytes(packet.bytes);
-                                                                       * currentRoom.getAdmin().getCtx().writeAndFlush(o
-                                                                       * .createPacket(PacketType.
-                                                                       * PACKET_FORWARD_CLIENT_FROM));
-                                                                       */
-    }
 
     private static Packet relayServerInitInfoInternalPacket() throws IOException {
         GameOutputStream o = new GameOutputStream();
@@ -353,7 +344,6 @@ public class RelayPacketHandler extends PacketHandler {
         o.writeInt(5); // 可能和-AX一样 // QuestionID
         // Msg
         o.writeString(msg);
-        log.info("============debug 1");
         ctx.writeAndFlush(o.createPacket(PacketType.RELAY_117)); /// -> 118
     }
 
@@ -363,7 +353,7 @@ public class RelayPacketHandler extends PacketHandler {
 
     public String relaySelect;
 
-    public void relayDirectInspection(RelayNetworkRoom relayRoom) throws IOException {
+    public void relayDirectInspection() throws IOException {
         GameInputStream inStream = new GameInputStream(conn.cachePacket);
         inStream.readString();
         int packetVersion = inStream.readInt();
@@ -373,7 +363,7 @@ public class RelayPacketHandler extends PacketHandler {
         if (packetVersion >= 1) {
             inStream.skip(4);
         }
-        String queryString = "";
+        String queryString = ""; // queryString的意思： micro.xin:5123/new 此时请求的new部分会被写入queryString
         if (packetVersion >= 2) {
             queryString = inStream.readIsString();
         }
@@ -382,17 +372,18 @@ public class RelayPacketHandler extends PacketHandler {
             inStream.readString();
         }
 
-        log.info("============debug rdi room=null is-{}", relayRoom == null);
-        if (relayRoom == null) {
+        log.info("ques {}",queryString);
+        if (queryString == null ||queryString.isEmpty() ||!RelayRoomManager.containsRoom(Integer.parseInt(queryString))) {
+            //如果不存在那就要创建
             if (isBlank(queryString) || "RELAYCN".equalsIgnoreCase(queryString)) {
-                sendRelayServerTypeInternal("[Relay CN+ #0] 这台服务器是CN非官方的Relay房间");// Data.SERVER_CORE_VERSION
-                relaySelect = "3.0.0";
+                sendRelayServerTypeInternal("[Relay CN+ #0] 这台服务器是CN非官方的Relay房间\n您输入的房间不存在,不过您也可以输入new来创建一个");// Data.SERVER_CORE_VERSION
+                //relaySelect = "3.0.0";
             } else {
                 idCustom(queryString);
             }
         } else {
-            // this.room = relayRoom;
-            // addRelayConnect();
+            //this.room = relayRoom;
+            addRelayConnect(RelayRoomManager.getRoom(Integer.parseInt(queryString)));
         }
     }
 
@@ -461,7 +452,7 @@ public class RelayPacketHandler extends PacketHandler {
             }
 
             if (RelayRoomManager.containsRoom(Integer.parseInt(id))) {
-                // addRelayConnect(room);
+                addRelayConnect(RelayRoomManager.getRoom(Integer.parseInt(id)));
                 currentRoom = RelayRoomManager.getRoom(Integer.parseInt(id));
                 connectionType = 6;
             } else {
@@ -473,25 +464,63 @@ public class RelayPacketHandler extends PacketHandler {
         }
     }
 
-    private void addRelayConnect() {
+    private void addRelayConnect(RelayNetworkRoom room) throws IOException {
+            connectionType = 6;
+            currentRoom = room;
 
+            //connectReceiveData.inputPassword = false
+            //if (room == null) {
+            //    Log.clog("?????")
+            //    room = NetStaticData.relayRoom
+            //}
+
+            currentRoom.site++;
+            site =  currentRoom.site;
+            //room!!.setAbstractNetConnect(this)
+
+            GameOutputStream o = new GameOutputStream();
+            if (clientVersion >= 172) {
+                o.writeByte(1);
+                o.writeInt(site);
+                // ?
+                o.writeString(conn.registerPlayerId);
+                //o.writeBoolean(false)
+                // User UUID
+                o.writeIsString(null);
+                o.writeIsString("10.0.0.1");
+                currentRoom.sendPackageToHOST(o.createPacket(PacketType.FORWARD_CLIENT_ADD));
+            } else {
+                o.writeByte(0);
+                o.writeInt(site);
+                o.writeString(conn.registerPlayerId);
+                o.writeIsString(null);
+                currentRoom.sendPackageToHOST(o.createPacket(PacketType.FORWARD_CLIENT_ADD));
+            }
+
+            currentRoom.sendPackageToHOST(conn.cachePacket);
+            //connectionAgreement.add(room!!.groupNet);
+            //this.room!!.setAddSize()
+            currentRoom.site++;
     }
 
     // 创建新房间
     private void createNewRoom() throws IOException {
         try {
             // 由服务器自动生成房间ID
-            currentRoom = new RelayNetworkRoom(10000, this.conn);
-            RelayRoomManager.addRelayRoom(currentRoom);
+            if (!RelayRoomManager.containsRoom(10000)) {
+                currentRoom = new RelayNetworkRoom(10000, this.conn);
+                RelayRoomManager.addRelayRoom(currentRoom);
+            }
 
             // 发送成功消息
             sendRelayServerTypeInternal("[成功] 已创建新房间，ID: " + currentRoom.roomId);
 
-            // 设置默认参数
-            sendDefaultRoomSettings();
-
             // 设置为房主
             sendRelayServerId();
+
+            // 设置默认参数
+            //sendDefaultRoomSettings();
+
         } catch (Exception e) {
             log.error("Failed to create new room", e);
             sendRelayServerTypeInternal("[错误] 创建房间失败: " + e.getMessage());
@@ -629,6 +658,7 @@ public class RelayPacketHandler extends PacketHandler {
 
         // 发送RELAY_BECOME_SERVER数据包
         ctx.writeAndFlush(o.createPacket(PacketType.RELAY_BECOME_SERVER));
+        //ctx.writeAndFlush(o.createPacket(PacketType.RELAY_BECOME_SERVER));
 
         // 禁止玩家使用 Server/Relay 做玩家名
         if (conn.playerName.equalsIgnoreCase("SERVER") || conn.playerName.equalsIgnoreCase("RELAY")) {

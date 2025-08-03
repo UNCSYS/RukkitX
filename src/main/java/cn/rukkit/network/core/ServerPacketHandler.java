@@ -87,11 +87,14 @@ public class ServerPacketHandler extends PacketHandler {
 			case Packet.PACKET_HEART_BEAT_RESPONSE:
 				heartResponsePacketHandler();
 				break;
+			case PacketType.PLAYER_INFO:
+				playerInfoPacketHandler();
+				break;
 			case Packet.PACKET_ADD_CHAT:
 				addChatPacketHandler();
 				break;
 			case Packet.PACKET_ADD_GAMECOMMAND:
-				addChatPacketHandler();
+				addGameCommandPacketHandler();
 				break;
 			case Packet.PACKET_RANDY:
 				playerReadyPacketHandler();

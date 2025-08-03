@@ -258,5 +258,6 @@ public class RelayRoomConnection {
 	 */
 	public void pong() {
 		ping = (int) (System.currentTimeMillis() - pingTime);
+        handler.stopTimeout();
 	}
 }
