@@ -28,7 +28,7 @@ public class RelayRoomConnection {
 
 	public NetworkPlayer player;
 	public ConnectionHandler handler;
-	public RelayNetworkRoom currectRoom;
+	public RelayNetworkRoom currentRoom;
 	public long pingTime;
 	public int lastSyncTick = 0;
 	public boolean checkSumSent = false;
@@ -98,9 +98,8 @@ public class RelayRoomConnection {
 		}
 	}
 
-	public RelayRoomConnection(ConnectionHandler handler, RelayNetworkRoom currectRoom) {
+	public RelayRoomConnection(ConnectionHandler handler) {
 		this.handler = handler;
-		this.currectRoom = currectRoom;
 	}
 	
 	public void startPingTask() {
@@ -137,7 +136,7 @@ public class RelayRoomConnection {
 	 */
 	public void sendChat(String msg) {
 		try {
-			currectRoom.connectionManager.broadcast(Packet.chat(player.name, msg, player.playerIndex));
+			currentRoom.connectionManager.broadcast(Packet.chat(player.name, msg, player.playerIndex));
 		} catch (IOException ignored) {}
 	}
 
@@ -162,27 +161,9 @@ public class RelayRoomConnection {
 			handler.ctx.writeAndFlush(Packet.chat(from, msg, team));
 		} catch (IOException e) {}
 	}
-
-	/**
-	 * 发送游戏指令
-	 * @param cmd GameCommand实例.
-	 */
-	public void sendGameCommand(GameCommand cmd) {
-        // If game is paused, throw everything.
-        if (currectRoom.isPaused()) {
-            return;
-        }
-		if (Rukkit.getConfig().useCommandQuere) {
-			currectRoom.addCommand(cmd);
-		} else {
-			try {
-				currectRoom.connectionManager.broadcast(Packet.gameCommand(currectRoom.getTickTime(), cmd));
-			} catch (IOException ignored) {}
-		}
-	}
 	
 	public void updateTeamList() throws IOException {
-		updateTeamList(currectRoom.isGaming());
+		updateTeamList(currentRoom.isGaming);
 	}
 
 	/**
@@ -202,7 +183,7 @@ public class RelayRoomConnection {
 
 		for (int i =0;i < Rukkit.getConfig().maxPlayer;i++)
 		{
-			NetworkPlayer playerp = currectRoom.playerManager.get(i);
+			NetworkPlayer playerp = currentRoom.playerManager.get(i);
 
 			enc.stream.writeBoolean(!playerp.isEmpty);
 
@@ -219,8 +200,8 @@ public class RelayRoomConnection {
 		}
 		o.flushEncodeData(enc);
 
-		o.writeInt(currectRoom.config.fogType);
-		o.writeInt(GameUtils.getMoneyFormat(currectRoom.config.credits));
+		o.writeInt(currentRoom.config.fogType);
+		o.writeInt(GameUtils.getMoneyFormat(currentRoom.config.credits));
 		o.writeBoolean(true);
 		//ai
 		o.writeInt(1);
@@ -231,12 +212,12 @@ public class RelayRoomConnection {
 		o.writeInt(250);
 
 		//初始单位
-		o.writeInt(currectRoom.config.startingUnits);
-		o.writeFloat(currectRoom.config.income);
-		o.writeBoolean(currectRoom.config.disableNuke);
+		o.writeInt(currentRoom.config.startingUnits);
+		o.writeFloat(currentRoom.config.income);
+		o.writeBoolean(currentRoom.config.disableNuke);
 		o.writeBoolean(false);
 		o.writeBoolean(false);
-		o.writeBoolean(currectRoom.config.sharedControl);
+		o.writeBoolean(currentRoom.config.sharedControl);
 
 		Packet p = o.createPacket(Packet.PACKET_TEAM_LIST);
 

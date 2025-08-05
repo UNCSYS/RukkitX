@@ -6,7 +6,6 @@ import io.netty.channel.ChannelHandlerContext;
 
 public abstract class PacketHandler {
     public RoomConnection conn;
-    public NetworkRoom currentRoom;
     public abstract void handle() throws Exception;
     public abstract void updateMsg(ChannelHandlerContext ctx,Object msg);
 	public abstract void onConnectionClose(ChannelHandlerContext ctx);

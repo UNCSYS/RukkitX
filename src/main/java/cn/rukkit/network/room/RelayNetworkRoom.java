@@ -1,26 +1,18 @@
 package cn.rukkit.network.room;
 
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import cn.rukkit.Rukkit;
 import cn.rukkit.config.RoundConfig;
-import cn.rukkit.config.RukkitConfig;
-import cn.rukkit.event.room.RoomStartGameEvent;
-import cn.rukkit.event.room.RoomStopGameEvent;
-import cn.rukkit.game.*;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.game.PlayerManager;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.util.Vote;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Random;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RelayNetworkRoom {
     public PlayerManager playerManager;
@@ -36,40 +28,27 @@ public class RelayNetworkRoom {
     public int checkSumFrame = 0;
     public final AtomicInteger checkSumReceived = new AtomicInteger();
     public int syncCount = 0;
+
+    
     public int roomId;
     public RelayRoomConnection adminConn;
+    public RelayRoomConnection connections[] = new RelayRoomConnection[9];
     public int site = -1;
 
-    private volatile boolean checkRequested = false;
-
-    /**
-     * NoStop模式下的房间存档
-     */
-    public SaveData lastNoStopSave;
-    private boolean isGaming = false;
-    private boolean isPaused = false;
-    private ScheduledFuture gameTaskFuture;
-    private SaveManager saveManager;
+    public boolean isGaming = false;
+    public Packet startGamePacket = null;
 
     public Vote vote;
 
     @Override
     public String toString() {
-        return MessageFormat.format(
-                "NetworkRoom [id = {0}, isGaming = {1}, isPaused = {2}, currentStep = {3}, stepRate = {4}]",
-                roomId, isGaming, isPaused, currentStep, stepRate);
+        return "not set";
     }
 
     public RelayNetworkRoom(int id, RelayRoomConnection adminConn) {
         // 指定房间id
         roomId = id;
         this.adminConn = adminConn;
-        // 初始化玩家控制器，连接控制器，和存档管理器
-        // playerManager = new PlayerManager(this, Rukkit.getConfig().maxPlayer);
-        // connectionManager = new RoomConnectionManager(this);
-        // saveManager = new SaveManager(this);
-        // config = Rukkit.getRoundConfig();
-        // vote = new Vote(this);
     }
 
     public void sendPackageToHOST(Packet p) throws IOException {
@@ -81,16 +60,11 @@ public class RelayNetworkRoom {
         o.write(p.bytes);
         adminConn.handler.ctx.writeAndFlush(o.createPacket(PacketType.PACKET_FORWARD_CLIENT_FROM));
     }
+    public void addconn(RelayRoomConnection conn){
+        connections[0]=conn;
+    }
 
     // =========================================
-
-    public boolean isPaused() {
-        return isPaused;
-    }
-
-    public void setPaused(boolean paused) {
-        isPaused = paused;
-    }
 
     /**
      * Broadcast a packet.
@@ -107,18 +81,6 @@ public class RelayNetworkRoom {
         connectionManager.clearAllSaveData();
         playerManager = null;
         connectionManager = null;
-    }
-
-    public boolean isGaming() {
-        // if (Rukkit.getConfig().nonStopMode) {
-        // return true;
-        // }
-        if (currentStep <= 0) {
-            isGaming = false;
-        } else {
-            isGaming = true;
-        }
-        return isGaming;
     }
 
     public void changeMapWhileRunning(String mapName, int type) {
@@ -148,19 +110,6 @@ public class RelayNetworkRoom {
         }
     }
 
-    public void notifyGameTask() {
-        // hreadLock.notify();
-        setPaused(false);
-    }
-
-    public int getTickTime() {
-        return currentStep;
-    }
-
-    public int getCurrentStep() {
-        return currentStep;
-    }
-
     public void addCommand(GameCommand cmd) {
         if (Rukkit.getConfig().useCommandQuere) {
             commandQuere.addLast(cmd);
@@ -169,22 +118,6 @@ public class RelayNetworkRoom {
                 broadcast(Packet.gameCommand(this.currentStep, cmd));
             } catch (IOException ignored) {
             }
-        }
-    }
-
-    public void summonUnit(String unitName, float x, float y, int player) {
-        try {
-            broadcast(Packet.gameSummon(getCurrentStep(), unitName, x, y, player));
-        } catch (IOException e) {
-
-        }
-    }
-
-    public void summonUnit(String unitName, float x, float y) {
-        try {
-            broadcast(Packet.gameSummon(getCurrentStep(), unitName, x, y));
-        } catch (IOException e) {
-
         }
     }
 }
