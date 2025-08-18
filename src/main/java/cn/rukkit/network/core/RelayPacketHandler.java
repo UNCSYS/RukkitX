@@ -2,6 +2,7 @@ package cn.rukkit.network.core;
 
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +62,15 @@ public class RelayPacketHandler extends PacketHandler {
     @Override
     public void onConnectionClose(ChannelHandlerContext ctx) {
         log.warn("有一个连接未激活 {}", ctx.toString());
+        if (host && conn.currentRoom!=null) {
+            RelayRoomManager.removeRoom(conn.currentRoom.roomId);
+            for (RelayRoomConnection currConn : conn.currentRoom.connections) {
+                //踢出所有玩家
+                if(currConn != null){
+                    currConn.handler.ctx.close();
+                }
+            }
+        }
         // TODO Auto-generated method stub
         // throw new UnsupportedOperationException("Unimplemented method
         // 'onConnectionClose'");
@@ -68,9 +78,6 @@ public class RelayPacketHandler extends PacketHandler {
 
     public void handle() throws Exception {
         conn.pong();//终止超时
-        if (packet.type != 109 && packet.type != 108 && packet.type != 115) {
-            log.info("PacketType" + packet.type + " ConnType" + connectionType);
-        }
         // 检查是否已经注册成为有效连接
         if (relayCheck()) {
             return;
@@ -90,7 +97,11 @@ public class RelayPacketHandler extends PacketHandler {
                     GameOutputStream o = new GameOutputStream();
                     o.write(bytes);
                     Packet p = o.createPacket(type);
-                    conn.currentRoom.connections[target].handler.ctx.writeAndFlush(p);//发给目标玩家
+                    if (conn.currentRoom.connections[target]!=null) {
+                        conn.currentRoom.connections[target].handler.ctx.writeAndFlush(p);//发给目标玩家
+                    } else {
+                        log.warn("企图向不存在的玩家发送封包");
+                    }
                     
                     log.info("FOWD TO CL PACKET type{"+type+"} tar"+target);
 
@@ -123,6 +134,10 @@ public class RelayPacketHandler extends PacketHandler {
                 case PacketType.PLAYER_INFO:
                     relayRegisterConnection(packet);
                     //
+                    break;
+                case PacketType.DISCONNECT:
+                    conn.currentRoom.connections[site]=null;
+                    conn.currentRoom.sendPackageToHOST(packet);
                     break;
                 default:
                     conn.currentRoom.sendPackageToHOST(packet);
@@ -193,6 +208,7 @@ public class RelayPacketHandler extends PacketHandler {
                 stream.readString(); // read another string
                 registerPlayerId = stream.readString(); // get player UUID hex
                 conn.registerPlayerId = registerPlayerId;
+                log.info("uuid+ "+registerPlayerId);
                 conn.playerName = name;
 
                 log.info(name);
@@ -202,6 +218,9 @@ public class RelayPacketHandler extends PacketHandler {
             }
         } else if (connectionType >= 5) { // PlayerPermission or higher
 
+            //===========================================//
+            //........关于ban等内容 恕不提供支持.........//
+            //===========================================//
             if (connectionType == 5) { /*
                                         * // PlayerPermission
                                         * if (!currentRoom.isGaming()) {
@@ -376,7 +395,7 @@ public class RelayPacketHandler extends PacketHandler {
         GameInputStream inStream = new GameInputStream(conn.cachePacket);
         inStream.readString();
         int packetVersion = inStream.readInt();
-        int clientVersion = inStream.readInt();
+        clientVersion = inStream.readInt();
         // betaGameVersion = getBetaVersion(clientVersion);
 
         if (packetVersion >= 1) {
@@ -528,10 +547,13 @@ public class RelayPacketHandler extends PacketHandler {
     private void createNewRoom() throws IOException {
         try {
             // 由服务器自动生成房间ID
-            if (!RelayRoomManager.containsRoom(10000)) {
-                RelayNetworkRoom NewRoom = new RelayNetworkRoom(10000, this.conn);
+            int tmpId = ThreadLocalRandom.current().nextInt(10000, 100000);
+            if (!RelayRoomManager.containsRoom(tmpId)) {
+                RelayNetworkRoom NewRoom = new RelayNetworkRoom(tmpId, this.conn);
                 RelayRoomManager.addRelayRoom(NewRoom);
                 conn.currentRoom = NewRoom;
+            }else{
+                ctx.writeAndFlush(Packet.packetQuestion(5, "[?] 随机的ID居然已经存在了 0.01%的概率哎?!"));
             }
 
             // 发送成功消息
@@ -588,11 +610,13 @@ public class RelayPacketHandler extends PacketHandler {
             o.writeBoolean(isPublic); // 是否公开
             o.writeBoolean(true); // ?
             o.writeString(
-                    "{{RELAY-CN}} Room ID : (未完成) \n" +
+                    "{{CORE-CN}} Room ID : "+conn.currentRoom.roomId+" \n" +
                             "你的房间是 <" + (isPublic ? "开放" : "隐藏") + "> 在列表\n" +
-                            "This Server Use RW-HPS Project (Test)");
+                            "本服务端为Micro维护的第三方Rukkit版本\n" +
+                            "This Server Use RukkitNEXT Project (it)");
             o.writeBoolean(multicast); // 是否使用组播
             o.writeIsString(conn.registerPlayerId); // 注册玩家ID
+            log.info("uuid+ "+conn.registerPlayerId);
         } else {
             // 旧协议版本的数据包格式
             o.writeByte(1);
@@ -602,9 +626,10 @@ public class RelayPacketHandler extends PacketHandler {
             o.writeBoolean(false); // MOD标记
             o.writeBoolean(isPublic); // 是否公开
             o.writeString(
-                    "{{RELAY-CN}} Room ID : (未完成) \n" +
+                    "{{CORE-CN}} Room ID : "+conn.currentRoom.roomId+" \n" +
                             "你的房间是 <" + (isPublic ? "开放" : "隐藏") + "> 在列表\n" +
-                            "This Server Use RW-HPS Project");
+                            "本服务端为Micro维护的第三方Rukkit版本\n" +
+                            "This Server Use RukkitNEXT Project (it)");
             o.writeBoolean(multicast); // 是否使用组播
         }
 

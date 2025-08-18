@@ -34,8 +34,6 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 	public static void main(String args[]){
 		InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
 		try {
-			log.info("init::The OID:2...");
-
 			log.info("init::JLine Terminal...");
 			terminal = TerminalBuilder.builder().system(true).jna(true).build();
 			lineReader = LineReaderBuilder.builder().terminal(terminal).completer(new ArgumentCompleter(

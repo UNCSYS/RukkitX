@@ -19,7 +19,6 @@ import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.io.GzipEncoder;
 import cn.rukkit.util.GameUtils;
 
-import java.io.IOError;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
@@ -234,6 +233,13 @@ public class RoomConnection {
 		try {
 			handler.ctx.writeAndFlush(Packet.kick(reason));
 		} catch (IOException e) {}
+	}
+	/**
+	 * 向连接发送数据包并刷新
+	 * @param reason 数据包
+	 */
+	public void sendPacket(Packet packet){
+		handler.ctx.writeAndFlush(packet);
 	}
 
 	/**
