@@ -11,6 +11,7 @@ import cn.rukkit.game.PlayerManager;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.util.Vote;
 
@@ -87,7 +88,7 @@ public class RelayNetworkRoom {
         Rukkit.getRoundConfig().mapName = mapName;
         Rukkit.getRoundConfig().mapType = type;
         try {
-            connectionManager.broadcast(Packet.gameStart());
+            connectionManager.broadcast(UniversalPacket.gameStart());
             // Set shared control.
             if (Rukkit.getRoundConfig().sharedControl) {
                 for (NetworkPlayer p : playerManager.getPlayerArray()) {
@@ -102,7 +103,7 @@ public class RelayNetworkRoom {
             // Reset tick time
             currentStep = 0;
             // Broadcast start packet.
-            connectionManager.broadcast(Packet.serverInfo(config));
+            connectionManager.broadcast(UniversalPacket.serverInfo(config));
             for (RoomConnection conn : connectionManager.getConnections()) {
                 conn.updateTeamList(false);
             }
@@ -115,7 +116,7 @@ public class RelayNetworkRoom {
             commandQuere.addLast(cmd);
         } else {
             try {
-                broadcast(Packet.gameCommand(this.currentStep, cmd));
+                broadcast(UniversalPacket.gameCommand(this.currentStep, cmd));
             } catch (IOException ignored) {
             }
         }

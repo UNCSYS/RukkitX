@@ -23,6 +23,7 @@ import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.network.room.RoomConnectionManager;
 import cn.rukkit.plugin.PluginConfig;
@@ -142,8 +143,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 								Rukkit.getRoundConfig().mapName = OfficialMap.maps[i];
 								Rukkit.getRoundConfig().mapType = 0;
 								try {
-									con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-									con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+									con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+									con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 								} catch (IOException ignored) {}
 								break;
 							}
@@ -193,8 +194,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
 					Rukkit.getRoundConfig().mapType = 1;
 					try {
-						con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-						con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+						con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+						con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 					} catch (IOException ignored) {}
 				}
 			}
@@ -418,8 +419,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 						cfg.fogType = 2;
 				}
 				try {
-					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+					con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -434,8 +435,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			} else {
 				Rukkit.getRoundConfig().startingUnits = Integer.parseInt(args[0]);
 				try {
-					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+					con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -475,8 +476,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			} else {
 				Rukkit.getRoundConfig().sharedControl = Boolean.parseBoolean(args[0]);
 				try {
-					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+					con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -491,8 +492,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			} else {
 				Rukkit.getRoundConfig().disableNuke = !Boolean.parseBoolean(args[0]);
 				try {
-					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+					con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -510,8 +511,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 					Rukkit.getRoundConfig().income = 1;
 				}
 				try {
-					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+					con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -526,8 +527,8 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			} else {
 				Rukkit.getRoundConfig().credits = Integer.parseInt(args[0]);
 				try {
-					con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
-					con.handler.ctx.writeAndFlush(Packet.serverInfo(con.currectRoom.config, true));
+					con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
+					con.sendPacket(UniversalPacket.serverInfo(con.currectRoom.config, true));
 				} catch (IOException ignored) {}
 			}
 			return false;
@@ -600,7 +601,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		@Override
 		public boolean onSend(RoomConnection con, String[] args) {
 			try {
-				con.currectRoom.broadcast(Packet.syncCheckSum(con.currectRoom.getCurrentStep()));
+				con.currectRoom.broadcast(UniversalPacket.syncCheckSum(con.currectRoom.getCurrentStep()));
 			} catch (IOException e) {
 				//con.sendChat(
 			}
@@ -616,7 +617,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 				float y = Float.parseFloat(args[1]);
 				//String name = args[0];
 				try {
-					con.currectRoom.broadcast(Packet.gamePing(con.currectRoom, con.player.playerIndex, PingType.happy, x, y));
+					con.currectRoom.broadcast(UniversalPacket.gamePing(con.currectRoom, con.player.playerIndex, PingType.happy, x, y));
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -637,7 +638,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 			build.append("Connections: " + Rukkit.getGlobalConnectionManager().size());
 			build.append("ThreadManager Tasks: " + Rukkit.getThreadManager().getActiveThreadCount() + "/" + Rukkit.getConfig().threadPoolCount);
 			try {
-				con.handler.ctx.writeAndFlush(Packet.chat("SERVER",
+				con.sendPacket(UniversalPacket.chat("SERVER",
 						build.toString(), -1));
 			} catch (IOException e) {}
 			return false;
@@ -661,7 +662,7 @@ public class CommandPlugin extends InternalRukkitPlugin implements ChatCommandLi
 		public boolean onSend(RoomConnection con, String[] args) {
 			if (!con.player.isSurrounded) {
 				try {
-					con.currectRoom.broadcast(Packet.gameSurrounder(con.currectRoom, con.player.playerIndex));
+					con.currectRoom.broadcast(UniversalPacket.gameSurrounder(con.currectRoom, con.player.playerIndex));
 					con.currectRoom.connectionManager.broadcastServerMessage(String.format("Player %s surrounded!", con.player.name));
 					con.player.isSurrounded = true;
 				} catch (IOException e) {

@@ -496,4 +496,19 @@ public class UniversalPacket {
 		out.writeByte(0);
 		return out.createPacket(PacketType.RETURN_TO_BATTLEROOM);
 	}
+
+    public static Packet fromRelayJumpsToAnotherServerInternalPacket(String ip) throws IOException {
+        GameOutputStream o = new GameOutputStream();
+        // The message contained in the package
+        o.writeByte(0);
+        // Protocol version? (I don't know)
+        o.writeInt(3);
+        // Debug
+        o.writeBoolean(false);
+        // For
+        o.writeInt(1);
+        o.writeString(ip);
+
+        return o.createPacket(PacketType.PACKET_RECONNECT_TO);
+    }
 }

@@ -18,6 +18,7 @@ import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.map.OfficialMap;
 import cn.rukkit.game.mod.Mod;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
@@ -50,7 +51,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                 NetworkPlayer player = room.playerManager.get(slot);
                 if (!player.isSurrounded) {
                     try {
-                        room.broadcast(Packet.gameSurrounder(room, slot));
+                        room.broadcast(UniversalPacket.gameSurrounder(room, slot));
                     } catch (IOException e) {
                         getLogger().error("An error occurred:", e);
                     }
@@ -194,7 +195,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                                 room.config.mapName = OfficialMap.maps[i];
                                 room.config.mapType = 0;
                                 try {
-                                    room.broadcast(Packet.serverInfo(room.config));
+                                    room.broadcast(UniversalPacket.serverInfo(room.config));
                                 } catch (IOException ignored) {}
                                 break;
                             }
@@ -245,7 +246,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
 //                    Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
 //                    Rukkit.getRoundConfig().mapType = 1;
 //                    try {
-//                        Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
+//                        Rukkit.getConnectionManager().broadcast(UniversalPacket.serverInfo());
 //                    } catch (IOException ignored) {}
 //                }
 //            }
@@ -257,7 +258,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
 //        @Override
 //        public void onSend(String[] args) {
 //            try {
-//                Rukkit.getConnectionManager().getPlayerManager().get(Integer.parseInt(args[0])).getConnection().handler.ctx.writeAndFlush(Packet.packetQuestion(99999, args[1]));
+//                Rukkit.getConnectionManager().getPlayerManager().get(Integer.parseInt(args[0])).getConnection().handler.ctx.writeAndFlush(UniversalPacket.packetQuestion(99999, args[1]));
 //            } catch (IOException e) {
 //                throw new RuntimeException(e);
 //            }

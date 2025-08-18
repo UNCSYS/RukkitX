@@ -14,6 +14,7 @@ import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.network.room.RoomConnectionManager;
@@ -157,7 +158,7 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
                                                        public void run() {
                                                            Rukkit.getRoundConfig().disableNuke = !Boolean.parseBoolean(args[0]);
                                                            try {
-                                                               con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+                                                               con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
                                                            } catch (IOException ignored) {}
                                                        }
                                                    },
@@ -187,7 +188,7 @@ public class NoStopCommandPlugin extends InternalRukkitPlugin{
                                                        public void run() {
                                                            try {
                                                                con.currectRoom.config.income = income;
-                                                               con.currectRoom.broadcast(Packet.serverInfo(con.currectRoom.config));
+                                                               con.currectRoom.broadcast(UniversalPacket.serverInfo(con.currectRoom.config));
                                                                con.currectRoom.syncGame();
                                                            } catch (IOException e) {}
                                                        }

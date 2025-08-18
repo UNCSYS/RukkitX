@@ -17,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.NetworkRoom;
 
 import org.slf4j.Logger;
@@ -42,12 +43,12 @@ public class SaveManager {
     }
     
     public void sendDefaultSaveToAll(boolean isPullSave) throws IOException {
-        currentRoom.broadcast(Packet.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
+        currentRoom.broadcast(UniversalPacket.sendSave(currentRoom, getDeafultSave().arr, isPullSave));
     }
     
     public void sendLastSaveToAll(boolean isPullSave) throws IOException {
         if (lastSave != null) {
-            currentRoom.broadcast(Packet.sendSave(currentRoom, lastSave.arr,isPullSave));
+            currentRoom.broadcast(UniversalPacket.sendSave(currentRoom, lastSave.arr,isPullSave));
         } else {
             log.error("lastSave is NULL!Ignoring sendLastSaveToAll.");
         }

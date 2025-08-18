@@ -17,6 +17,7 @@ import cn.rukkit.event.EventListener;
 import cn.rukkit.event.action.PingEvent;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 
@@ -70,7 +71,7 @@ public class TestPlugin extends InternalRukkitPlugin implements EventListener {
                 }
             }
             try {
-                player.getRoom().broadcast(Packet.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
+                player.getRoom().broadcast(UniversalPacket.gameSummon(player.getRoom(), unit, event.getTargetX(), event.getTargetY(), player.playerIndex));
             } catch (IOException ignored) {}
             player.putTempData("isSpawnTriggered", false);
         }

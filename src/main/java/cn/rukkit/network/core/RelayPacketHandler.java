@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.io.GameInputStream;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.room.RelayNetworkRoom;
@@ -416,7 +417,7 @@ public class RelayPacketHandler extends PacketHandler {
             // 如果不存在那就要创建
             if (isBlank(queryString) || "RELAYCN".equalsIgnoreCase(queryString)) {
                 ctx.writeAndFlush(
-                        Packet.packetQuestion(5, "[Relay CN+ #0] 这台服务器是CN非官方的Relay房间\n您输入的房间不存在,不过您也可以输入new来创建一个"));// Data.SERVER_CORE_VERSION
+                        UniversalPacket.packetQuestion(5, "[Relay CN+ #0] 这台服务器是CN非官方的Relay房间\n您输入的房间不存在,不过您也可以输入new来创建一个"));// Data.SERVER_CORE_VERSION
                 // relaySelect = "3.0.0";
             } else {
                 idCustom(queryString);
@@ -441,21 +442,6 @@ public class RelayPacketHandler extends PacketHandler {
         }
     }
 
-    private Packet fromRelayJumpsToAnotherServerInternalPacket(String ip) throws IOException {
-        GameOutputStream o = new GameOutputStream();
-        // The message contained in the package
-        o.writeByte(0);
-        // Protocol version? (I don't know)
-        o.writeInt(3);
-        // Debug
-        o.writeBoolean(false);
-        // For
-        o.writeInt(1);
-        o.writeString(ip);
-
-        return o.createPacket(PacketType.PACKET_RECONNECT_TO);
-    }
-
     private void idCustom(String inId) throws IOException {
         // 过滤制表符、空格、换行符
         String id = inId.replaceAll("\\s", "");
@@ -468,13 +454,13 @@ public class RelayPacketHandler extends PacketHandler {
         // }
 
         if (id.isEmpty()) {
-            ctx.writeAndFlush(Packet.packetQuestion(5, "[提示] 请输入房间ID或'new'创建新房间"));
+            ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[提示] 请输入房间ID或'new'创建新房间"));
             return;
         }
 
         // 检查Emoji
         if (containsEmoji(id)) {
-            ctx.writeAndFlush(Packet.packetQuestion(5, "[错误] 不能使用Emoji"));
+            ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[错误] 不能使用Emoji"));
             return;
         }
 
@@ -487,18 +473,18 @@ public class RelayPacketHandler extends PacketHandler {
         // 加入现有房间逻辑
         try {
             if (id.contains(".")) {
-                ctx.writeAndFlush(Packet.packetQuestion(5, "[错误] ID不能包含点号(.)"));
+                ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[错误] ID不能包含点号(.)"));
                 return;
             }
 
             if (RelayRoomManager.containsRoom(Integer.parseInt(id))) {
                 addRelayConnect(RelayRoomManager.getRoom(Integer.parseInt(id)));
             } else {
-                ctx.writeAndFlush(Packet.packetQuestion(5, "[错误] 找不到房间: " + id));
+                ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[错误] 找不到房间: " + id));
             }
         } catch (Exception e) {
             log.debug("Error finding relay room", e);
-            ctx.writeAndFlush(Packet.packetQuestion(5, "[错误] " + e.getMessage()));
+            ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[错误] " + e.getMessage()));
         }
     }
 
@@ -553,11 +539,11 @@ public class RelayPacketHandler extends PacketHandler {
                 RelayRoomManager.addRelayRoom(NewRoom);
                 conn.currentRoom = NewRoom;
             }else{
-                ctx.writeAndFlush(Packet.packetQuestion(5, "[?] 随机的ID居然已经存在了 0.01%的概率哎?!"));
+                ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[?] 随机的ID居然已经存在了 0.01%的概率哎?!"));
             }
 
             // 发送成功消息
-            ctx.writeAndFlush(Packet.packetQuestion(5, "[成功] 已创建新房间，ID: " + conn.currentRoom.roomId));
+            ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[成功] 已创建新房间，ID: " + conn.currentRoom.roomId));
 
             // 设置为房主
             sendRelayServerId();
@@ -567,7 +553,7 @@ public class RelayPacketHandler extends PacketHandler {
 
         } catch (Exception e) {
             log.error("Failed to create new room", e);
-            ctx.writeAndFlush(Packet.packetQuestion(5, "[错误] 创建房间失败: " + e.getMessage()));
+            ctx.writeAndFlush(UniversalPacket.packetQuestion(5, "[错误] 创建房间失败: " + e.getMessage()));
         }
     }
 

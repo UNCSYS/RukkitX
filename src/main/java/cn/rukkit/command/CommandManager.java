@@ -68,8 +68,7 @@ public class CommandManager
 		}
 		if (result == true) {
 			try {
-				connection.currectRoom.broadcast(
-					Packet.chat(connection.player.name,
+				connection.currectRoom.broadcast(UniversalPacket.chat(connection.player.name,
 								"-" + cmd,
 								connection.player.playerIndex));
 			} catch (IOException e) {}

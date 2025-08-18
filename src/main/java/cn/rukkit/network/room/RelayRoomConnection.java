@@ -16,9 +16,9 @@ import java.util.concurrent.ScheduledFuture;
 import cn.rukkit.Rukkit;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.SaveData;
-import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.ConnectionHandler;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.io.GzipEncoder;
 import cn.rukkit.util.GameUtils;
@@ -126,7 +126,7 @@ public class RelayRoomConnection {
 
 	public void doChecksum() {
 		try {
-			handler.ctx.writeAndFlush(Packet.syncCheckSum(lastSyncTick));
+			handler.ctx.writeAndFlush(UniversalPacket.syncCheckSum(lastSyncTick));
 		} catch (IOException ignored) {}
 	}
 
@@ -136,7 +136,7 @@ public class RelayRoomConnection {
 	 */
 	public void sendChat(String msg) {
 		try {
-			currentRoom.connectionManager.broadcast(Packet.chat(player.name, msg, player.playerIndex));
+			currentRoom.connectionManager.broadcast(UniversalPacket.chat(player.name, msg, player.playerIndex));
 		} catch (IOException ignored) {}
 	}
 
@@ -146,7 +146,7 @@ public class RelayRoomConnection {
 	 */
 	public void sendServerMessage(String msg) {
 		try {
-			handler.ctx.writeAndFlush(Packet.chat("SERVER", msg, -1));
+			handler.ctx.writeAndFlush(UniversalPacket.chat("SERVER", msg, -1));
 		} catch (IOException e) {}
 	}
 
@@ -158,7 +158,7 @@ public class RelayRoomConnection {
 	 */
 	public void sendMessage(String from, String msg, int team) {
 		try {
-			handler.ctx.writeAndFlush(Packet.chat(from, msg, team));
+			handler.ctx.writeAndFlush(UniversalPacket.chat(from, msg, team));
 		} catch (IOException e) {}
 	}
 	
@@ -230,7 +230,7 @@ public class RelayRoomConnection {
 	 */
 	public void kick(String reason) {
 		try {
-			handler.ctx.writeAndFlush(Packet.kick(reason));
+			handler.ctx.writeAndFlush(UniversalPacket.kick(reason));
 		} catch (IOException e) {}
 	}
 

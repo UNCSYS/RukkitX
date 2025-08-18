@@ -118,8 +118,8 @@ public class ServerPacketHandler extends PacketHandler {
 	// =============== 实际对封包处理 =================//
 	private void preRegisterHandler() throws IOException {
 		log.debug("New connection established:{}", ctx.channel().remoteAddress());
-		ctx.write(p.preRegister());
-		ctx.writeAndFlush(p.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
+		ctx.write(UniversalPacket.preRegister());
+		ctx.writeAndFlush(UniversalPacket.chat("SERVER", LangUtil.getString("rukkit.playerRegister"), -1));
 	}
 
 	private void playerInfoPacketHandler() throws IOException {
@@ -163,7 +163,7 @@ public class ServerPacketHandler extends PacketHandler {
 
 		// 无可用房间，踢出
 		if (currentRoom == null) {
-			ctx.writeAndFlush(Packet.kick(LangUtil.getString("rukkit.gameFull")));
+			ctx.writeAndFlush(UniversalPacket.kick(LangUtil.getString("rukkit.gameFull")));
 			return;
 		}
 
@@ -173,13 +173,13 @@ public class ServerPacketHandler extends PacketHandler {
 				log.info("You are in the debug mode, allowing this situation!");
 				targetPlayer = null; // 释放来保证正确加入
 			} else {
-				ctx.writeAndFlush(Packet.kick("You are already in server!"));
+				ctx.writeAndFlush(UniversalPacket.kick("You are already in server!"));
 				return;
 			}
 		}
 
 		// 刷新房间信息
-		ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
+		ctx.writeAndFlush(UniversalPacket.serverInfo(currentRoom.config));
 
 		// 创建 RoomConnection
 		conn = new RoomConnection(handler, currentRoom);
@@ -209,11 +209,11 @@ public class ServerPacketHandler extends PacketHandler {
 		if (currentRoom.connectionManager.size() <= 0) {
 			// conn.sendServerMessage(LangUtil.getString("rukkit.playerGotAdmin"));
 			// conn.player.isAdmin = true;
-			ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
+			conn.sendPacket(UniversalPacket.serverInfo(currentRoom.config));
 
 			// ==========
 		} else {
-			ctx.writeAndFlush(Packet.serverInfo(currentRoom.config));
+			conn.sendPacket(UniversalPacket.serverInfo(currentRoom.config));
 		}
 
 		// 当前房间是否在游戏
@@ -283,7 +283,7 @@ public class ServerPacketHandler extends PacketHandler {
 		} else {
 			if (PlayerChatEvent.getListenerList().callListeners(new PlayerChatEvent(conn.player, chatmsg))) {
 				currentRoom.connectionManager
-						.broadcast(p.chat(conn.player.name, chatmsg, conn.player.playerIndex));
+						.broadcast(UniversalPacket.chat(conn.player.name, chatmsg, conn.player.playerIndex));
 			}
 		}
 	}
@@ -619,9 +619,7 @@ public class ServerPacketHandler extends PacketHandler {
 	}
 
 	private void playerReadyPacketHandler() {
-
-		currentRoom.connectionManager
-				.broadcastServerMessage(String.format("Player '%s' is randy.", conn.player.name));
+		currentRoom.connectionManager.broadcastServerMessage(String.format("Player '%s' is randy.", conn.player.name));
 	}
 
 	private void syncPacketHandler() throws IOException {

@@ -32,6 +32,7 @@ import org.yaml.snakeyaml.nodes.Tag;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.util.LangUtil;
@@ -254,7 +255,7 @@ public class NetworkPlayer
 
 	public void updateServerInfo() {
 		try {
-			connection.handler.ctx.writeAndFlush(Packet.serverInfo(room.config, isAdmin));
+			connection.sendPacket(UniversalPacket.serverInfo(room.config, isAdmin));
 		} catch (IOException e) {}
 	}
 

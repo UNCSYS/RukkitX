@@ -15,6 +15,7 @@ import cn.rukkit.game.SaveData;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.ConnectionHandler;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.io.GzipEncoder;
 import cn.rukkit.util.GameUtils;
@@ -109,7 +110,7 @@ public class RoomConnection {
 
 	public void doChecksum() {
 		try {
-			handler.ctx.writeAndFlush(Packet.syncCheckSum(lastSyncTick));
+			handler.ctx.writeAndFlush(UniversalPacket.syncCheckSum(lastSyncTick));
 		} catch (IOException ignored) {}
 	}
 
@@ -119,7 +120,7 @@ public class RoomConnection {
 	 */
 	public void sendChat(String msg) {
 		try {
-			currectRoom.connectionManager.broadcast(Packet.chat(player.name, msg, player.playerIndex));
+			currectRoom.connectionManager.broadcast(UniversalPacket.chat(player.name, msg, player.playerIndex));
 		} catch (IOException ignored) {}
 	}
 
@@ -129,7 +130,7 @@ public class RoomConnection {
 	 */
 	public void sendServerMessage(String msg) {
 		try {
-			handler.ctx.writeAndFlush(Packet.chat("SERVER", msg, -1));
+			handler.ctx.writeAndFlush(UniversalPacket.chat("SERVER", msg, -1));
 		} catch (IOException e) {}
 	}
 
@@ -141,7 +142,7 @@ public class RoomConnection {
 	 */
 	public void sendMessage(String from, String msg, int team) {
 		try {
-			handler.ctx.writeAndFlush(Packet.chat(from, msg, team));
+			handler.ctx.writeAndFlush(UniversalPacket.chat(from, msg, team));
 		} catch (IOException e) {}
 	}
 
@@ -158,7 +159,7 @@ public class RoomConnection {
 			currectRoom.addCommand(cmd);
 		} else {
 			try {
-				currectRoom.connectionManager.broadcast(Packet.gameCommand(currectRoom.getTickTime(), cmd));
+				currectRoom.connectionManager.broadcast(UniversalPacket.gameCommand(currectRoom.getTickTime(), cmd));
 			} catch (IOException ignored) {}
 		}
 	}
@@ -231,7 +232,7 @@ public class RoomConnection {
 	 */
 	public void kick(String reason) {
 		try {
-			handler.ctx.writeAndFlush(Packet.kick(reason));
+			handler.ctx.writeAndFlush(UniversalPacket.kick(reason));
 		} catch (IOException e) {}
 	}
 	/**

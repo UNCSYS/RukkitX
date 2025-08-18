@@ -234,7 +234,7 @@ public class GlobalConnectionManager
 
 	public void broadcastGlobalServerMessage(String msg) {
 		try {
-			broadcast(Packet.chat("SERVER", msg, -1));
+			broadcast(UniversalPacket.chat("SERVER", msg, -1));
 		} catch (IOException ignored) {}
 	}
 

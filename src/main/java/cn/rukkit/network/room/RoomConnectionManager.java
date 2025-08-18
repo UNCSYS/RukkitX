@@ -15,6 +15,7 @@ import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.network.RoomGameServer;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelGroupFuture;
 import io.netty.channel.group.ChannelMatcher;
@@ -95,7 +96,7 @@ public class RoomConnectionManager {
                 if (!p.isEmpty) {
                     p.isAdmin = true;
                     try {
-                        p.getConnection().handler.ctx.writeAndFlush(Packet.serverInfo(room.config, true));
+                        p.getConnection().handler.ctx.writeAndFlush(UniversalPacket.serverInfo(room.config, true));
                     } catch (IOException ignored) {}
                     break;
                 }
@@ -183,14 +184,14 @@ public class RoomConnectionManager {
 
     public void broadcastServerMessage(String msg) {
         try {
-            broadcast(Packet.chat("SERVER", msg, -1));
+            broadcast(UniversalPacket.chat("SERVER", msg, -1));
         } catch (IOException ignored) {
         }
     }
 
     public void broadcastGlobalServerMessage(String msg) {
         try {
-            broadcast(Packet.chat("SERVER", msg, -1));
+            broadcast(UniversalPacket.chat("SERVER", msg, -1));
         } catch (IOException ignored) {
         }
     }
@@ -200,7 +201,7 @@ public class RoomConnectionManager {
      */
     public void broadcastServerInfo() {
         try {
-            broadcast(Packet.serverInfo(room.config, false));
+            broadcast(UniversalPacket.serverInfo(room.config, false));
         } catch (IOException ignored) {
         }
     }
