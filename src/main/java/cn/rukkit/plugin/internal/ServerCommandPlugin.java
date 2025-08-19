@@ -15,12 +15,10 @@ import cn.rukkit.event.EventHandler;
 import cn.rukkit.event.EventListener;
 import cn.rukkit.event.server.ServerQuestionRespondEvent;
 import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
-import cn.rukkit.network.NetworkRoom;
-import cn.rukkit.network.RoomConnection;
-import cn.rukkit.network.RoomManager;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.NetworkRoom;
+import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.plugin.PluginConfig;
 import cn.rukkit.util.LangUtil;
 import org.slf4j.Logger;
@@ -28,8 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class ServerCommandPlugin extends InternalRukkitPlugin implements EventListener {
@@ -53,7 +49,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                 NetworkPlayer player = room.playerManager.get(slot);
                 if (!player.isSurrounded) {
                     try {
-                        room.broadcast(Packet.gameSurrounder(room, slot));
+                        room.broadcast(UniversalPacket.gameSurrounder(room, slot));
                     } catch (IOException e) {
                         getLogger().error("An error occurred:", e);
                     }
@@ -167,9 +163,8 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
         }
         @Override
         public void onSend(String[] args) {
-            // TODO: Implement this method
-            // Maps
             if (type == 0) {
+                // Maps
                 StringBuilder build = new StringBuilder();
                 if (args.length > 0) {
                     build.append("- Maps -  Page ").append(args[0]).append(" \n");
@@ -187,6 +182,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                 // con.sendServerMessage(build.toString());
                 System.out.println(build);
             } else {
+                // Map
                 if (args.length > 1) {
                     NetworkRoom room = Rukkit.getRoomManager().getRoom(Integer.parseInt(args[0]));
                     if (room == null) return;
@@ -197,7 +193,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
                                 room.config.mapName = OfficialMap.maps[i];
                                 room.config.mapType = 0;
                                 try {
-                                    room.broadcast(Packet.serverInfo(room.config));
+                                    room.broadcast(UniversalPacket.serverInfo(room.config));
                                 } catch (IOException ignored) {}
                                 break;
                             }
@@ -248,7 +244,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
 //                    Rukkit.getRoundConfig().mapName = mapList.get(id).toString();
 //                    Rukkit.getRoundConfig().mapType = 1;
 //                    try {
-//                        Rukkit.getConnectionManager().broadcast(Packet.serverInfo());
+//                        Rukkit.getConnectionManager().broadcast(UniversalPacket.serverInfo());
 //                    } catch (IOException ignored) {}
 //                }
 //            }
@@ -260,7 +256,7 @@ public class ServerCommandPlugin extends InternalRukkitPlugin implements EventLi
 //        @Override
 //        public void onSend(String[] args) {
 //            try {
-//                Rukkit.getConnectionManager().getPlayerManager().get(Integer.parseInt(args[0])).getConnection().handler.ctx.writeAndFlush(Packet.packetQuestion(99999, args[1]));
+//                Rukkit.getConnectionManager().getPlayerManager().get(Integer.parseInt(args[0])).getConnection().handler.ctx.writeAndFlush(UniversalPacket.packetQuestion(99999, args[1]));
 //            } catch (IOException e) {
 //                throw new RuntimeException(e);
 //            }

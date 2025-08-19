@@ -1,16 +1,4 @@
-package cn.rukkit.network;
-
-import cn.rukkit.Rukkit;
-import cn.rukkit.config.RoundConfig;
-import cn.rukkit.config.RukkitConfig;
-import cn.rukkit.event.room.RoomStartGameEvent;
-import cn.rukkit.event.room.RoomStopGameEvent;
-import cn.rukkit.game.*;
-import cn.rukkit.network.command.GameCommand;
-import cn.rukkit.network.packet.Packet;
-import cn.rukkit.util.Vote;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package cn.rukkit.network.room;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -19,6 +7,24 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import cn.rukkit.Rukkit;
+import cn.rukkit.config.RoundConfig;
+import cn.rukkit.config.RukkitConfig;
+import cn.rukkit.event.room.RoomStartGameEvent;
+import cn.rukkit.event.room.RoomStopGameEvent;
+import cn.rukkit.game.CheckSumList;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.game.PlayerManager;
+import cn.rukkit.game.SaveData;
+import cn.rukkit.game.SaveManager;
+import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.util.Vote;
 
 public class NetworkRoom {
     public PlayerManager playerManager;
@@ -82,8 +88,7 @@ public class NetworkRoom {
             HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
             for (RoomConnection r: connectionManager.getConnections()) {
                 if (r.checkSumSent) {
-                    map.put(r.lastSyncTick,
-                            map.getOrDefault(r.lastSyncTick, 0) + 1);
+                    map.put(r.lastSyncTick,map.getOrDefault(r.lastSyncTick, 0) + 1);
                 }
             }
             AtomicInteger max = new AtomicInteger();
@@ -184,11 +189,11 @@ public class NetworkRoom {
                 //log.debug("tick:" + tickTime);
                 try {
                     if (commandQuere.isEmpty() && !isPaused) {
-                        connectionManager.broadcast(Packet.emptyCommand(currentStep));
+                        connectionManager.broadcast(UniversalPacket.emptyCommand(currentStep));
                     } else {
                         while(!commandQuere.isEmpty() && !isPaused){
                             GameCommand cmd = commandQuere.removeLast();
-                            connectionManager.broadcast(Packet.gameCommand(currentStep, cmd));
+                            connectionManager.broadcast(UniversalPacket.gameCommand(currentStep, cmd));
                         }
                     }
                 } catch (IOException ignored) {}
@@ -239,11 +244,11 @@ public class NetworkRoom {
                 //log.debug("tick:" + tickTime);
                 try {
                     if (commandQuere.isEmpty() && !isPaused) {
-                        connectionManager.broadcast(Packet.emptyCommand(currentStep));
+                        connectionManager.broadcast(UniversalPacket.emptyCommand(currentStep));
                     } else {
                         while(!commandQuere.isEmpty() && !isPaused){
                             GameCommand cmd = commandQuere.removeLast();
-                            connectionManager.broadcast(new Packet().gameCommand(currentStep, cmd));
+                            connectionManager.broadcast(UniversalPacket.gameCommand(currentStep, cmd));
                         }
                     }
                 } catch (IOException ignored) {}
@@ -264,7 +269,7 @@ public class NetworkRoom {
             try {
                 //Rukkit.getSaveManager().sendDefaultSaveToAll();
                 //Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
-                connectionManager.broadcast(Packet.sendPullSave(NetworkRoom.this));
+                connectionManager.broadcast(UniversalPacket.sendPullSave(NetworkRoom.this));
                 SaveData save;
                 long time = System.currentTimeMillis();
                 while (true) {
@@ -324,7 +329,7 @@ public class NetworkRoom {
         if (isRuturn) {
             try {
                 playerManager.clearDisconnectedPlayers();
-                connectionManager.broadcast(Packet.packetReturnToBattleroom());
+                connectionManager.broadcast(UniversalPacket.packetReturnToBattleroom());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -378,7 +383,7 @@ public class NetworkRoom {
      */
     public void startGame() {
         try {
-            connectionManager.broadcast(Packet.gameStart());
+            connectionManager.broadcast(UniversalPacket.gameStart());
             // Set shared control.
             if (Rukkit.getRoundConfig().sharedControl) {
                 for (NetworkPlayer p:playerManager.getPlayerArray()) {
@@ -391,7 +396,7 @@ public class NetworkRoom {
             // Reset tick time
             currentStep = 0;
             // Broadcast start packet.
-            connectionManager.broadcast(Packet.serverInfo(config));
+            connectionManager.broadcast(UniversalPacket.serverInfo(config));
             for(RoomConnection conn : connectionManager.getConnections()) {
                 conn.updateTeamList();
             }
@@ -416,7 +421,7 @@ public class NetworkRoom {
         Rukkit.getRoundConfig().mapName = mapName;
         Rukkit.getRoundConfig().mapType = type;
         try {
-            connectionManager.broadcast(Packet.gameStart());
+            connectionManager.broadcast(UniversalPacket.gameStart());
             // Set shared control.
             if (Rukkit.getRoundConfig().sharedControl) {
                 for (NetworkPlayer p:playerManager.getPlayerArray()) {
@@ -429,7 +434,7 @@ public class NetworkRoom {
             // Reset tick time
             currentStep = 0;
             // Broadcast start packet.
-            connectionManager.broadcast(Packet.serverInfo(config));
+            connectionManager.broadcast(UniversalPacket.serverInfo(config));
             for(RoomConnection conn : connectionManager.getConnections()) {
                 conn.updateTeamList(false);
             }
@@ -454,14 +459,14 @@ public class NetworkRoom {
             commandQuere.addLast(cmd);
         } else {
             try {
-                broadcast(Packet.gameCommand(this.currentStep, cmd));
+                broadcast(UniversalPacket.gameCommand(this.currentStep, cmd));
             } catch (IOException ignored) {}
         }
     }
 
     public void summonUnit(String unitName, float x, float y, int player) {
         try {
-            broadcast(Packet.gameSummon(getCurrentStep(), unitName, x, y, player));
+            broadcast(UniversalPacket.gameSummon(getCurrentStep(), unitName, x, y, player));
         } catch (IOException e) {
 
         }
@@ -469,7 +474,7 @@ public class NetworkRoom {
 
     public void summonUnit(String unitName, float x, float y) {
         try {
-            broadcast(Packet.gameSummon(getCurrentStep(), unitName, x, y));
+            broadcast(UniversalPacket.gameSummon(getCurrentStep(), unitName, x, y));
         } catch (IOException e) {
 
         }

@@ -1,4 +1,4 @@
-package cn.rukkit.network;
+package cn.rukkit.network.room;
 
 import cn.rukkit.Rukkit;
 import cn.rukkit.config.RoundConfig;

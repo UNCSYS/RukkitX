@@ -21,7 +21,6 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Objects;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +31,10 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.Tag;
 
 import cn.rukkit.Rukkit;
-import cn.rukkit.network.NetworkRoom;
-import cn.rukkit.network.RoomConnection;
-import cn.rukkit.network.packet.Packet;
+import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.room.NetworkRoom;
+import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.util.LangUtil;
 
 public class NetworkPlayer
@@ -97,7 +97,8 @@ public class NetworkPlayer
 	 * @param <T>
 	 */
 	public <T> T getExtraDataAs(String key, T defaultValue, Class<T> tClass) {
-		return (T) data.extraData.getOrDefault(key, defaultValue);
+    	Object value = data.extraData.getOrDefault(key, defaultValue);
+    	return tClass.isInstance(value) ? tClass.cast(value) : defaultValue;
 	}
 
 	/**
@@ -254,7 +255,7 @@ public class NetworkPlayer
 
 	public void updateServerInfo() {
 		try {
-			connection.handler.ctx.writeAndFlush(Packet.serverInfo(room.config, isAdmin));
+			connection.sendPacket(UniversalPacket.serverInfo(room.config, isAdmin));
 		} catch (IOException e) {}
 	}
 

@@ -7,31 +7,51 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network;
+package cn.rukkit.network.room;
 
-import cn.rukkit.Rukkit;
-import cn.rukkit.game.NetworkPlayer;
-import cn.rukkit.game.SaveData;
-import cn.rukkit.network.command.GameCommand;
-import cn.rukkit.network.packet.Packet;
-import cn.rukkit.util.GameUtils;
-
-import java.io.IOError;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
 
-public class RoomConnection {
+import cn.rukkit.Rukkit;
+import cn.rukkit.game.NetworkPlayer;
+import cn.rukkit.game.SaveData;
+import cn.rukkit.network.core.ConnectionHandler;
+import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.UniversalPacket;
+import cn.rukkit.network.io.GameOutputStream;
+import cn.rukkit.network.io.GzipEncoder;
+import cn.rukkit.util.GameUtils;
+
+public class RelayRoomConnection {
+
+
 	public NetworkPlayer player;
 	public ConnectionHandler handler;
-	public NetworkRoom currectRoom;
+	public RelayNetworkRoom currentRoom;
 	public long pingTime;
 	public int lastSyncTick = 0;
 	public boolean checkSumSent = false;
+	public boolean isStartGame;
+	public boolean syncFlag = true; 
 	public int numberOfDesyncError = 0;
+	public int ping = -1;
+
 
 	private ScheduledFuture pingFuture;
 	private ScheduledFuture teamFuture;
+    public Packet cachePacket;//RW-HPS有 那就加上吧
+	public String registerPlayerId;
+	public String playerName;
+
+	public void setCachePacket(Packet p){
+		cachePacket = p;
+	}
+
+
+
+
+
     public SaveData save;
 	//public ChannelHandlerContext ctx;
 
@@ -78,9 +98,8 @@ public class RoomConnection {
 		}
 	}
 
-	public RoomConnection(ConnectionHandler handler, NetworkRoom currectRoom) {
+	public RelayRoomConnection(ConnectionHandler handler) {
 		this.handler = handler;
-		this.currectRoom = currectRoom;
 	}
 	
 	public void startPingTask() {
@@ -107,7 +126,7 @@ public class RoomConnection {
 
 	public void doChecksum() {
 		try {
-			handler.ctx.writeAndFlush(Packet.syncCheckSum(lastSyncTick));
+			handler.ctx.writeAndFlush(UniversalPacket.syncCheckSum(lastSyncTick));
 		} catch (IOException ignored) {}
 	}
 
@@ -117,7 +136,7 @@ public class RoomConnection {
 	 */
 	public void sendChat(String msg) {
 		try {
-			currectRoom.connectionManager.broadcast(Packet.chat(player.name, msg, player.playerIndex));
+			currentRoom.connectionManager.broadcast(UniversalPacket.chat(player.name, msg, player.playerIndex));
 		} catch (IOException ignored) {}
 	}
 
@@ -127,7 +146,7 @@ public class RoomConnection {
 	 */
 	public void sendServerMessage(String msg) {
 		try {
-			handler.ctx.writeAndFlush(Packet.chat("SERVER", msg, -1));
+			handler.ctx.writeAndFlush(UniversalPacket.chat("SERVER", msg, -1));
 		} catch (IOException e) {}
 	}
 
@@ -139,30 +158,12 @@ public class RoomConnection {
 	 */
 	public void sendMessage(String from, String msg, int team) {
 		try {
-			handler.ctx.writeAndFlush(Packet.chat(from, msg, team));
+			handler.ctx.writeAndFlush(UniversalPacket.chat(from, msg, team));
 		} catch (IOException e) {}
-	}
-
-	/**
-	 * 发送游戏指令
-	 * @param cmd GameCommand实例.
-	 */
-	public void sendGameCommand(GameCommand cmd) {
-        // If game is paused, throw everything.
-        if (currectRoom.isPaused()) {
-            return;
-        }
-		if (Rukkit.getConfig().useCommandQuere) {
-			currectRoom.addCommand(cmd);
-		} else {
-			try {
-				currectRoom.connectionManager.broadcast(Packet.gameCommand(currectRoom.getTickTime(), cmd));
-			} catch (IOException ignored) {}
-		}
 	}
 	
 	public void updateTeamList() throws IOException {
-		updateTeamList(currectRoom.isGaming());
+		updateTeamList(currentRoom.isGaming);
 	}
 
 	/**
@@ -182,7 +183,7 @@ public class RoomConnection {
 
 		for (int i =0;i < Rukkit.getConfig().maxPlayer;i++)
 		{
-			NetworkPlayer playerp = currectRoom.playerManager.get(i);
+			NetworkPlayer playerp = currentRoom.playerManager.get(i);
 
 			enc.stream.writeBoolean(!playerp.isEmpty);
 
@@ -199,8 +200,8 @@ public class RoomConnection {
 		}
 		o.flushEncodeData(enc);
 
-		o.writeInt(currectRoom.config.fogType);
-		o.writeInt(GameUtils.getMoneyFormat(currectRoom.config.credits));
+		o.writeInt(currentRoom.config.fogType);
+		o.writeInt(GameUtils.getMoneyFormat(currentRoom.config.credits));
 		o.writeBoolean(true);
 		//ai
 		o.writeInt(1);
@@ -211,12 +212,12 @@ public class RoomConnection {
 		o.writeInt(250);
 
 		//初始单位
-		o.writeInt(currectRoom.config.startingUnits);
-		o.writeFloat(currectRoom.config.income);
-		o.writeBoolean(currectRoom.config.disableNuke);
+		o.writeInt(currentRoom.config.startingUnits);
+		o.writeFloat(currentRoom.config.income);
+		o.writeBoolean(currentRoom.config.disableNuke);
 		o.writeBoolean(false);
 		o.writeBoolean(false);
-		o.writeBoolean(currectRoom.config.sharedControl);
+		o.writeBoolean(currentRoom.config.sharedControl);
 
 		Packet p = o.createPacket(Packet.PACKET_TEAM_LIST);
 
@@ -229,7 +230,7 @@ public class RoomConnection {
 	 */
 	public void kick(String reason) {
 		try {
-			handler.ctx.writeAndFlush(Packet.kick(reason));
+			handler.ctx.writeAndFlush(UniversalPacket.kick(reason));
 		} catch (IOException e) {}
 	}
 
@@ -237,6 +238,7 @@ public class RoomConnection {
 	 * 心跳包返回
 	 */
 	public void pong() {
-		player.ping = (int) (System.currentTimeMillis() - pingTime);
+		ping = (int) (System.currentTimeMillis() - pingTime);
+        handler.stopTimeout();
 	}
 }

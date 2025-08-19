@@ -34,8 +34,6 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 	public static void main(String args[]){
 		InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
 		try {
-			log.info("init::The OID:2...");
-
 			log.info("init::JLine Terminal...");
 			terminal = TerminalBuilder.builder().system(true).jna(true).build();
 			lineReader = LineReaderBuilder.builder().terminal(terminal).completer(new ArgumentCompleter(
@@ -54,17 +52,14 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 					}
 					String str = lineReader.readLine(PATTERN);
 					Rukkit.getCommandManager().executeServerCommand(str);
-				}
-				catch (UserInterruptException e) {
+				}catch (UserInterruptException e) {
 					log.info("Stopping server...");
 					Rukkit.shutdown("Server stopped by console");
-				}
-				catch (EndOfFileException e) {
+				}catch (EndOfFileException e) {
 					log.info("Stopping server...");
 					Rukkit.shutdown("Server stopped by console");
 					break;
-				}
-				catch (Exception e) {
+				}catch (Exception e) {
 					System.out.println("Oops.A exception occurred.");
 					e.printStackTrace();
 				}
@@ -77,9 +72,6 @@ public class RukkitLauncher extends ConsoleAppender<ILoggingEvent>
 	}
 
 	Layout<ILoggingEvent> layout = new TTLLLayout();
-
-	private static void nop() {}
-
 
 	@Override
 	public void start() {

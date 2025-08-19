@@ -7,14 +7,17 @@
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
 
-package cn.rukkit.network;
+package cn.rukkit.network.core;
 import io.netty.channel.group.*;
 import io.netty.util.concurrent.*;
 
 import java.io.IOException;
 import java.util.*;
 import cn.rukkit.game.*;
-import cn.rukkit.network.packet.*;
+import cn.rukkit.network.RoomGameServer;
+import cn.rukkit.network.core.packet.*;
+import cn.rukkit.network.room.NetworkRoom;
+import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -231,7 +234,7 @@ public class GlobalConnectionManager
 
 	public void broadcastGlobalServerMessage(String msg) {
 		try {
-			broadcast(Packet.chat("SERVER", msg, -1));
+			broadcast(UniversalPacket.chat("SERVER", msg, -1));
 		} catch (IOException ignored) {}
 	}
 

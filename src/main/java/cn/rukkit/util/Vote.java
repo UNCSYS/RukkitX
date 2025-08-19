@@ -10,8 +10,8 @@
 package cn.rukkit.util;
 
 import cn.rukkit.Rukkit;
-import cn.rukkit.network.NetworkRoom;
-import cn.rukkit.network.RoomConnectionManager;
+import cn.rukkit.network.room.NetworkRoom;
+import cn.rukkit.network.room.RoomConnectionManager;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
