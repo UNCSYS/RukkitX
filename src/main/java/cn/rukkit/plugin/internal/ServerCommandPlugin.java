@@ -16,8 +16,6 @@ import cn.rukkit.event.EventListener;
 import cn.rukkit.event.server.ServerQuestionRespondEvent;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.map.OfficialMap;
-import cn.rukkit.game.mod.Mod;
-import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RoomConnection;

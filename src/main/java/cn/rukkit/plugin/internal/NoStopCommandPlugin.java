@@ -13,7 +13,6 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
 import cn.rukkit.command.CommandManager;
-import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RoomConnection;

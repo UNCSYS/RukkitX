@@ -122,6 +122,7 @@ public class Time {
             scheduleTick();
         }
 
+        @SuppressWarnings("resource")
         private void scheduleTick() {
             new ScheduledThreadPoolExecutor(1, runnable -> {
                 Thread thread = new Thread(runnable, "current-time-millis");

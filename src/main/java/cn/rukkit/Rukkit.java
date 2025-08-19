@@ -35,7 +35,7 @@ import java.util.UUID;
 
 public class Rukkit {
 	private static boolean isStarted = false;
-	public static final String RUKKIT_VERSION = "0.9.4-dev";
+	public static final String RUKKIT_VERSION = "0.9.5-dev";
 	public static final int SUPPORT_GAME_VERSION = 176;
 	private static final Logger log = LoggerFactory.getLogger(Rukkit.class);
 	private static RoundConfig round;
