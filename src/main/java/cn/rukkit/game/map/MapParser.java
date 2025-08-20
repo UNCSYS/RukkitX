@@ -134,7 +134,7 @@ public class MapParser {
     }
 
     // 解析单位(unit)方法
-    private void parseUnits(){
+    private void parseUnits() {
         MapParser.LayerInfo unitsLayer = mapInfo.getLayerByName("Units");
         if (unitsLayer != null && unitsLayer.data != null) {
             int tileWidth = mapInfo.tileWidth;
@@ -144,27 +144,27 @@ public class MapParser {
                 for (int x = 0; x < mapInfo.width; x++) {
                     int tileId = unitsLayer.getTileIdAt(x, y);
                     if (tileId != 0) {
-                        Unit currUnitInfo =new Unit();
+                        Unit currUnitInfo = new Unit();
                         float pixelX = x * tileWidth + tileWidth / 2.0f;
-                        currUnitInfo.pixelX=pixelX;
+                        currUnitInfo.pixelX = pixelX;
                         float pixelY = y * tileHeight + tileHeight / 2.0f;
-                        currUnitInfo.pixelY=pixelY;
-
+                        currUnitInfo.pixelY = pixelY;
 
                         // 查找图块集来源
                         String tilesetName = "未知";// 根据tileId获取名字 要一个表
-                        currUnitInfo.name=tilesetName;
+                        currUnitInfo.name = tilesetName;
 
-                        int id = mapInfo.units.size()+1;
-                        currUnitInfo.id=id;
+                        int id = mapInfo.units.size() + 1;
+                        currUnitInfo.id = id;
                         mapInfo.units.add(currUnitInfo);
                     }
                 }
             }
         } else {
-            //System.out.println("    未找到Units层或层数据为空");
+            // System.out.println(" 未找到Units层或层数据为空");
         }
     }
+
     // 提取图层数据
     private List<Integer> extractLayerData(Element layer, int mapWidth, int mapHeight) {
         NodeList dataNodes = layer.getElementsByTagName("data");
@@ -370,27 +370,32 @@ public class MapParser {
     }
 
     /*
-    public static void main(String[] args) {
-        MapParser parser = new MapParser("/media/micro/Work_Space/Rukkit-master/build/outputs/data/你的地图文件.tmx");
-        MapParser.MapInfo mapInfo = parser.getMapInfo();
-
-        if (mapInfo != null) {
-            // 获取地图基本信息
-            System.out.println("地图尺寸: " + mapInfo.width + "x" + mapInfo.height);
-            System.out.println("图块尺寸: " + mapInfo.tileWidth + "x" + mapInfo.tileHeight);
-
-            // 获取图层信息
-            for (MapParser.LayerInfo layer : mapInfo.layers) {
-                System.out.println("图层: " + layer.name + ", 尺寸: " + layer.width + "x" + layer.height);
-            }
-
-            // 获取对象信息
-            for (String groupName : mapInfo.objects.keySet()) {
-                System.out.println("对象组: " + groupName + ", 对象数量: " + mapInfo.objects.get(groupName).size());
-            }
-            for (UnitInfo cInfo: mapInfo.units){
-                System.out.println("ID "+cInfo.id+" Name"+cInfo.name+" x"+cInfo.pixelX+" y"+cInfo.pixelY);
-            }
-        }
-    } */
+     * public static void main(String[] args) {
+     * MapParser parser = new MapParser(
+     * "/media/micro/Work_Space/Rukkit-master/build/outputs/data/你的地图文件.tmx");
+     * MapParser.MapInfo mapInfo = parser.getMapInfo();
+     * 
+     * if (mapInfo != null) {
+     * // 获取地图基本信息
+     * System.out.println("地图尺寸: " + mapInfo.width + "x" + mapInfo.height);
+     * System.out.println("图块尺寸: " + mapInfo.tileWidth + "x" + mapInfo.tileHeight);
+     * 
+     * // 获取图层信息
+     * for (MapParser.LayerInfo layer : mapInfo.layers) {
+     * System.out.println("图层: " + layer.name + ", 尺寸: " + layer.width + "x" +
+     * layer.height);
+     * }
+     * 
+     * // 获取对象信息
+     * for (String groupName : mapInfo.objects.keySet()) {
+     * System.out.println("对象组: " + groupName + ", 对象数量: " +
+     * mapInfo.objects.get(groupName).size());
+     * }
+     * for (UnitInfo cInfo: mapInfo.units){
+     * System.out.println("ID "+cInfo.id+" Name"+cInfo.name+" x"+cInfo.pixelX+" y"
+     * +cInfo.pixelY);
+     * }
+     * }
+     * }
+     */
 }

@@ -12,6 +12,7 @@ import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.mod.Mod.ModUnit;
 import cn.rukkit.game.unit.InternalUnit;
 import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.network.command.NewGameCommand;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.util.GameUtils;
@@ -73,7 +74,7 @@ public class UniversalPacket {
 	 * @params tick tickTime in game.
 	 * @params cmd gameCommand content.
 	 */
-	public static Packet gameCommand(int tick, GameCommand cmd) throws IOException {
+	public static Packet gameCommand(int tick, NewGameCommand cmd) throws IOException {
 		GameOutputStream o = new GameOutputStream();
 		o.writeInt(tick);
 		o.writeInt(1);

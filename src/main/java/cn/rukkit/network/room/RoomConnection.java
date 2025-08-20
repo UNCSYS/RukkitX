@@ -13,6 +13,7 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.network.command.NewGameCommand;
 import cn.rukkit.network.core.ConnectionHandler;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
@@ -151,7 +152,7 @@ public class RoomConnection {
 	 * 发送游戏指令
 	 * @param cmd GameCommand实例.
 	 */
-	public void sendGameCommand(GameCommand cmd) {
+	public void sendGameCommand(NewGameCommand cmd) {
         // If game is paused, throw everything.
         if (currectRoom.isPaused()) {
             return;

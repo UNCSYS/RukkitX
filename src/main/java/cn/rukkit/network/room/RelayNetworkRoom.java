@@ -8,7 +8,7 @@ import cn.rukkit.Rukkit;
 import cn.rukkit.config.RoundConfig;
 import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PlayerManager;
-import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.network.command.NewGameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.PacketType;
 import cn.rukkit.network.core.packet.UniversalPacket;
@@ -21,7 +21,7 @@ public class RelayNetworkRoom {
     /**
      * 命令列表。在采用更稳定的同步(useCommandQuere)时会启用，减少同步错误但是会提高操作延迟。
      */
-    private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
+    private LinkedList<NewGameCommand> commandQuere = new LinkedList<NewGameCommand>();
 
     public RoundConfig config;
     public int stepRate = 200;
@@ -111,7 +111,7 @@ public class RelayNetworkRoom {
         }
     }
 
-    public void addCommand(GameCommand cmd) {
+    public void addCommand(NewGameCommand cmd) {
         if (Rukkit.getConfig().useCommandQuere) {
             commandQuere.addLast(cmd);
         } else {

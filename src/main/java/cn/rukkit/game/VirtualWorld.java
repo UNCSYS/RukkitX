@@ -6,5 +6,8 @@ import java.util.List;
 import cn.rukkit.game.unit.Unit;
 
 public class VirtualWorld {
-        public List<Unit> units = new ArrayList<>();
+    public List<Unit> units = new ArrayList<>();
+    public VirtualWorld(){
+        
+    }
 }

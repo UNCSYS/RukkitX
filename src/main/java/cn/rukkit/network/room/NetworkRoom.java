@@ -23,6 +23,7 @@ import cn.rukkit.game.SaveData;
 import cn.rukkit.game.SaveManager;
 import cn.rukkit.game.VirtualWorld;
 import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.network.command.NewGameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.util.Vote;
@@ -33,7 +34,7 @@ public class NetworkRoom {
     /**
      * 命令列表。在采用更稳定的同步(useCommandQuere)时会启用，减少同步错误但是会提高操作延迟。
      */
-    private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
+    private LinkedList<NewGameCommand> commandQuere = new LinkedList<NewGameCommand>();
 
     public VirtualWorld world;// 虚拟世界 可以利用其获取游戏信息完成同步&校验
 
@@ -195,7 +196,7 @@ public class NetworkRoom {
                         connectionManager.broadcast(UniversalPacket.emptyCommand(currentStep));
                     } else {
                         while(!commandQuere.isEmpty() && !isPaused){
-                            GameCommand cmd = commandQuere.removeLast();
+                            NewGameCommand cmd = commandQuere.removeLast();
                             connectionManager.broadcast(UniversalPacket.gameCommand(currentStep, cmd));
                         }
                     }
@@ -250,7 +251,7 @@ public class NetworkRoom {
                         connectionManager.broadcast(UniversalPacket.emptyCommand(currentStep));
                     } else {
                         while(!commandQuere.isEmpty() && !isPaused){
-                            GameCommand cmd = commandQuere.removeLast();
+                            NewGameCommand cmd = commandQuere.removeLast();
                             connectionManager.broadcast(UniversalPacket.gameCommand(currentStep, cmd));
                         }
                     }
@@ -457,7 +458,7 @@ public class NetworkRoom {
         return currentStep;
     }
 
-    public void addCommand(GameCommand cmd) {
+    public void addCommand(NewGameCommand cmd) {
         if (Rukkit.getConfig().useCommandQuere) {
             commandQuere.addLast(cmd);
         } else {
