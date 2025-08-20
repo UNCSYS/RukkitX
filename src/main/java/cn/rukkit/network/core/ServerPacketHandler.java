@@ -290,6 +290,7 @@ public class ServerPacketHandler extends PacketHandler {
 
 	private void addGameCommandPacketHandler() throws IOException, IllegalAccessException, InvocationTargetException,
 			NoSuchMethodException, SecurityException {
+				
 		GameInputStream in = new GameInputStream(p);
 		GameCommand cmd = new GameCommand();
 		cmd.arr = in.getDecodeBytes();

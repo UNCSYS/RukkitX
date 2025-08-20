@@ -1,30 +1,35 @@
 [中文](README_zh.md)
+# Rukkit X Project  
+![RukkitLogo](rukkit.png)  
+**Original Repository: https://github.com/RukkitDev/Rukkit**  
 
-# Rukkit Project
-![RukkitLogo](rukkit.png)
-[![](https://img.shields.io/badge/QQ群-751977820-red.svg)]({linkUrl})
-[![](https://img.shields.io/badge/Discord-link-purple.svg)](https://discord.gg/JJJ6GST)
+[![](https://img.shields.io/badge/QQ_Group-751977820-red.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=ekpIy0vjVhGpCZ5cpszxP6vaR9nRIaFc&authKey=wtgSzxj7uZ7zk%2F4GO20B%2FWVXP9WcZMC7c2FMynjZkx8B%2BkntiSeybBZZ6O3g7p90&noverify=0&group_code=751977820)  
+[![](https://img.shields.io/badge/Discord-link-purple.svg)](https://discord.gg/JJJ6GST)  
+
 ## What is Rukkit?
-Rukkit is a Rustedwarfare Server,you can use it to run a private server on your vps or other devices.
-It's more like Dedicated server but more features like custom maps or mods, extra plugins.
-This project based on netty framework so it as stable as Dedicated Servers.
+Rukkit is a third-party Rusted Warfare server. You can use it to host Rusted Warfare servers with an experience similar to the official servers, but with better performance and more features. It supports custom mods/maps and server plugins, and includes a game event system that allows you to expand your gameplay experience or create new gameplay mechanics during matches. Rukkit is built on the high-performance Netty framework, theoretically offering better performance than the official servers or clients.  
 
-## Progress
-- [x] Basic Game Play
-- [x] Custom maps
-- [x] Game sync & rejoin (support offical maps and custom too)
-- [x] Basic Plugin System
-- [x] Mod server by mod's metadata (need a exportTool)
-- [x] 10p+ Multiplayer supported (only 1.14+)
-- [ ] No-stop game future.
-- [ ] Game hook(Events) supported some event not all.
-- [ ] Anti-Cheat sync (need a game Simulation layer)
-- [ ] Advanced gameCommand & save modification. (it's hard to make changes to them,the most result is crash the game.)
-- [ ] Relay mode (maybe in future version)
+## What is RukkitX?
+RukkitX is a relatively independent third-party fork that is slightly ahead of the main project's development progress, providing more cutting-edge features and bug fixes (**but it does not represent the ideas or decisions of RukkitDev—some features implemented in RukkitX may not be present in Rukkit**).  
 
-## About
-Some plugin system design referenced [Nukkit](https://github.com/Nukkit/Nukkit).
+## Current Progress  
+- [x] Basic gameplay (playable)  
+- [x] Custom maps  
+- [x] Game synchronization/player rejoin (only supports official maps)  
+- [x] Server plugin system  
+- [x] Metadata-based mod system (requires tool conversion for rwmod)  
+- [x] Support for more than 10 players (1.14+)  
+- [X] Relay mode (Experimental)  
+- [ ] Non-stop mode (supports join anytime, vote to change maps)  
+- [ ] Game event system (partially supported)  
+- [ ] Anti-cheat checks (requires game simulation layer, currently unfeasible)  
+- [ ] Game command reconstruction (difficult and prone to crashing the game)  
 
-## Unstable warning
-this is still a unstable build.If you find bugs,please commit issues.
-if you fixed some bugs, you can have a PR.
+## About  
+The plugin system design is inspired by [Nukkit](https://github.com/Nukkit/Nukkit).  
+
+## Unstable Warning  
+This version is still unstable. If you find any bugs, please submit an issue or PR. Thank you for your support!  
+
+## Become a Developer  
+Submit a useful PR along with a request to become a developer, and you’re in!

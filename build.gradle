@@ -59,11 +59,11 @@ tasks.register('buildRukkit') {
     doLast {
         println("Okay.Doing last step...")
         mkdir("./build/outputs")
-        /*copy() {
+        copy() {
             CopySpec copySpec ->
-                from file("${rootDir}/libs")
-                into "${rootDir}/build/outputs/libs"
-        }*/
+                from file("${rootDir}/maps")
+                into "${rootDir}/build/outputs/maps"
+        }
         copy() {
             CopySpec copySpec ->
                 from file("${rootDir}/build/libs/Rukkit-all.jar")

@@ -15,6 +15,7 @@ import cn.rukkit.game.SaveData;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.ConnectionHandler;
 import cn.rukkit.network.core.packet.Packet;
+import cn.rukkit.network.core.packet.PacketType;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.io.GzipEncoder;
@@ -221,7 +222,7 @@ public class RoomConnection {
 		o.writeBoolean(false);
 		o.writeBoolean(currectRoom.config.sharedControl);
 
-		Packet p = o.createPacket(Packet.PACKET_TEAM_LIST);
+		Packet p = o.createPacket(PacketType.TEAM_LIST);
 
 		handler.ctx.writeAndFlush(p);
 	}

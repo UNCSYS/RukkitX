@@ -24,6 +24,7 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
+import java.io.ObjectInputFilter.Config;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class RoomGameServer {
                             // TODO: Implement this method
                             //p1.pipeline().addLast(new IdleStateHandler(10, 10, 10, TimeUnit.SECONDS));
                             p1.pipeline().addLast(new PacketDecoder());
-                            p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler());
+                            p1.pipeline().addLast(new PacketEncoder()).addLast(new ConnectionHandler(Rukkit.getConfig().relayMode));
                         }
                     });
             //System.out.println("-Server started!");

@@ -21,10 +21,18 @@ public class ConnectionHandler extends ChannelInboundHandlerAdapter {
 	public ChannelHandlerContext ctx;
 	private ScheduledFuture timeoutFuture;
 
-	private PacketHandler handler = new ServerPacketHandler(this);
-	//private PacketHandler handler = new RelayPacketHandler(this);
+	private PacketHandler handler;
 
 	private String disconnectReason = "Unknown";
+
+	public ConnectionHandler(boolean relay){
+		if (relay) {
+			handler = new RelayPacketHandler(this);
+		}else{
+			handler = new ServerPacketHandler(this);
+		}
+	}
+
 	public class TimeoutTask implements Runnable {
 		private int execTime = 0;
 		@Override

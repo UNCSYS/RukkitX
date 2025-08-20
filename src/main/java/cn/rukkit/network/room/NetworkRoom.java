@@ -21,6 +21,7 @@ import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.game.SaveManager;
+import cn.rukkit.game.VirtualWorld;
 import cn.rukkit.network.command.GameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
@@ -33,6 +34,8 @@ public class NetworkRoom {
      * 命令列表。在采用更稳定的同步(useCommandQuere)时会启用，减少同步错误但是会提高操作延迟。
      */
     private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
+
+    public VirtualWorld world;// 虚拟世界 可以利用其获取游戏信息完成同步&校验
 
     public RoundConfig config;
     public int stepRate = 200;
