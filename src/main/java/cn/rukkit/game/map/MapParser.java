@@ -1,27 +1,46 @@
 package cn.rukkit.game.map;
 
-import java.io.*;
-import java.util.*;
-import java.util.zip.*;
-import javax.xml.parsers.*;
-import org.w3c.dom.*;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.jline.utils.Log;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 import cn.rukkit.game.unit.Unit;
+import cn.rukkit.game.unit.UnitTsx;
+import cn.rukkit.util.MathUtil;
 
 public class MapParser {
     private MapInfo mapInfo;
+    // private static final int FLAG_FLIP_HORIZONTALLY = Integer.MIN_VALUE;
+    // private static final int FLAG_FLIP_DIAGONALLY = 0x20000000;
+    // private static final int FLAG_FLIP_VERTICALLY = 0x40000000;
 
     public MapParser(String filePath) {
         this.mapInfo = parseTiledMap(filePath);
         // 解析Units
-        parseUnits();
+        parseUnits(this.mapInfo);
     }
 
     public MapInfo getMapInfo() {
         return mapInfo;
     }
 
-    // 安全的属性获取方法
+    // ===============================XML获取方法=================================
     private String getAttribute(Element element, String attributeName, String defaultValue) {
         if (element.hasAttribute(attributeName)) {
             String value = element.getAttribute(attributeName);
@@ -52,7 +71,7 @@ public class MapParser {
         }
     }
 
-    // 主解析方法
+    // ===============================CORE Parser=================================
     private MapInfo parseTiledMap(String filePath) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -69,7 +88,7 @@ public class MapParser {
             info.tileWidth = getIntAttribute(root, "tilewidth", 0);
             info.tileHeight = getIntAttribute(root, "tileheight", 0);
 
-            // 解析图块集
+            // 解析图块集 <Tilsets>
             NodeList tilesets = root.getElementsByTagName("tileset");
             for (int i = 0; i < tilesets.getLength(); i++) {
                 Element tileset = (Element) tilesets.item(i);
@@ -86,7 +105,7 @@ public class MapParser {
                 info.tilesets.add(tilesetInfo);
             }
 
-            // 解析图层
+            // 解析图层 <Layer>
             NodeList layers = root.getElementsByTagName("layer");
             for (int i = 0; i < layers.getLength(); i++) {
                 Element layer = (Element) layers.item(i);
@@ -96,11 +115,12 @@ public class MapParser {
                 layerInfo.width = getIntAttribute(layer, "width", 0);
                 layerInfo.height = getIntAttribute(layer, "height", 0);
                 layerInfo.data = extractLayerData(layer, info.width, info.height);
+                // int[]tileIds = layerInfo.data;
 
                 info.layers.add(layerInfo);
             }
 
-            // 解析对象组
+            // 解析对象组 <ObjectGroup>
             NodeList objectGroups = root.getElementsByTagName("objectgroup");
             for (int i = 0; i < objectGroups.getLength(); i++) {
                 Element objectGroup = (Element) objectGroups.item(i);
@@ -125,6 +145,9 @@ public class MapParser {
                 }
             }
 
+            // 解析原有单位 <Units>
+            info.units = parseUnits(info);
+
             return info;
         } catch (Exception e) {
             System.err.println("解析TMX文件时出错: " + e.getMessage());
@@ -133,40 +156,8 @@ public class MapParser {
         }
     }
 
-    // 解析单位(unit)方法
-    private void parseUnits() {
-        MapParser.LayerInfo unitsLayer = mapInfo.getLayerByName("Units");
-        if (unitsLayer != null && unitsLayer.data != null) {
-            int tileWidth = mapInfo.tileWidth;
-            int tileHeight = mapInfo.tileHeight;
-
-            for (int y = 0; y < mapInfo.height; y++) {
-                for (int x = 0; x < mapInfo.width; x++) {
-                    int tileId = unitsLayer.getTileIdAt(x, y);
-                    if (tileId != 0) {
-                        Unit currUnitInfo = new Unit();
-                        float pixelX = x * tileWidth + tileWidth / 2.0f;
-                        currUnitInfo.pixelX = pixelX;
-                        float pixelY = y * tileHeight + tileHeight / 2.0f;
-                        currUnitInfo.pixelY = pixelY;
-
-                        // 查找图块集来源
-                        String tilesetName = "未知";// 根据tileId获取名字 要一个表
-                        currUnitInfo.name = tilesetName;
-
-                        int id = mapInfo.units.size() + 1;
-                        currUnitInfo.id = id;
-                        mapInfo.units.add(currUnitInfo);
-                    }
-                }
-            }
-        } else {
-            // System.out.println(" 未找到Units层或层数据为空");
-        }
-    }
-
     // 提取图层数据
-    private List<Integer> extractLayerData(Element layer, int mapWidth, int mapHeight) {
+    private List<Integer> extractLayerData(Element layer, int mapWidth, int mapHeight) throws IOException {
         NodeList dataNodes = layer.getElementsByTagName("data");
         if (dataNodes.getLength() == 0) {
             return new ArrayList<>();
@@ -181,98 +172,115 @@ public class MapParser {
             return new ArrayList<>();
         }
 
-        try {
-            if ("base64".equals(encoding)) {
-                byte[] decodedData = Base64.getDecoder().decode(textContent);
-
-                if ("gzip".equals(compression)) {
-                    decodedData = decompressGZIP(decodedData);
-                } else if ("zlib".equals(compression)) {
-                    decodedData = decompressZlib(decodedData);
-                }
-
-                // 将字节数据转换为图块ID列表
-                List<Integer> tileIds = new ArrayList<>();
-                for (int i = 0; i < decodedData.length; i += 4) {
-                    if (i + 4 <= decodedData.length) {
-                        int tileId = ((decodedData[i] & 0xFF) |
-                                ((decodedData[i + 1] & 0xFF) << 8) |
-                                ((decodedData[i + 2] & 0xFF) << 16) |
-                                ((decodedData[i + 3] & 0xFF) << 24));
-                        tileIds.add(tileId);
-                    }
-                }
-                return tileIds;
-            } else if ("csv".equals(encoding)) {
-                // 处理CSV格式
-                String[] tileIdsStr = textContent.replace("\n", "").split(",");
-                List<Integer> tileIds = new ArrayList<>();
-                for (String idStr : tileIdsStr) {
-                    String trimmed = idStr.trim();
-                    if (!trimmed.isEmpty()) {
-                        try {
-                            tileIds.add(Integer.parseInt(trimmed));
-                        } catch (NumberFormatException e) {
-                            System.err.println("无法解析图块ID: " + trimmed);
-                            tileIds.add(0);
+        if ("base64".equals(encoding)) {
+            // base64解码
+            byte[] decodedData = MathUtil.decodeBase64Custom(textContent);
+            // zlib gzip解码
+            InputStream layerDataInputStream = null;
+            if ("gzip".equals(compression)) {
+                layerDataInputStream = new BufferedInputStream(
+                        new GZIPInputStream(new ByteArrayInputStream(decodedData), decodedData.length));
+            } else if ("zlib".equals(compression)) {
+                layerDataInputStream = new BufferedInputStream(
+                        new InflaterInputStream(new ByteArrayInputStream(decodedData)));
+            } else if (compression == null) {
+                layerDataInputStream = new ByteArrayInputStream(decodedData);
+            }
+            // 核心数据处理
+            byte[] arr = new byte[4];
+            int[] coreMapData = new int[mapHeight * mapWidth];
+            List<Integer> tileIds = new ArrayList<>();
+            for (int i = 0; i < mapHeight; i++) {
+                for (int j = 0; j < mapWidth; j++) {
+                    int read = layerDataInputStream.read(arr);
+                    while (read < 4) {
+                        int read2 = layerDataInputStream.read(arr, read, 4 - read);
+                        if (read2 == -1) {
+                            break;
                         }
+                        read += read2;
+                    }
+                    if (read != 4) {
+                        Log.error("TMXParser: Premature end of data");
+                    }
+                    coreMapData[i * mapWidth] = MathUtil.unsignedByteToInt(arr[0])
+                            | (MathUtil.unsignedByteToInt(arr[1]) << 8)
+                            | (MathUtil.unsignedByteToInt(arr[2]) << 16)
+                            | (MathUtil.unsignedByteToInt(arr[3]) << 24);
+                    tileIds.add(coreMapData[i * mapWidth]);
+                }
+            }
+            return tileIds;
+        } else if ("csv".equals(encoding)) {
+            // 处理CSV格式
+            String[] tileIdsStr = textContent.replace("\n", "").split(",");
+            List<Integer> tileIds = new ArrayList<>();
+            for (String idStr : tileIdsStr) {
+                String trimmed = idStr.trim();
+                if (!trimmed.isEmpty()) {
+                    try {
+                        tileIds.add(Integer.parseInt(trimmed));
+                    } catch (NumberFormatException e) {
+                        System.err.println("无法解析图块ID: " + trimmed);
+                        tileIds.add(0);
                     }
                 }
-                return tileIds;
-            } else {
-                // 处理XML格式（无编码）
-                List<Integer> tileIds = new ArrayList<>();
-                NodeList tileNodes = data.getElementsByTagName("tile");
-                for (int i = 0; i < tileNodes.getLength(); i++) {
-                    Element tile = (Element) tileNodes.item(i);
-                    int gid = getIntAttribute(tile, "gid", 0);
-                    tileIds.add(gid);
+            }
+            return tileIds;
+        } else {
+            // 处理XML格式（无编码）
+            List<Integer> tileIds = new ArrayList<>();
+            NodeList tileNodes = data.getElementsByTagName("tile");
+            for (int i = 0; i < tileNodes.getLength(); i++) {
+                Element tile = (Element) tileNodes.item(i);
+                int gid = getIntAttribute(tile, "gid", 0);
+                tileIds.add(gid);
+            }
+            return tileIds;
+        }
+
+    }
+
+    // 解析单位(unit)方法
+    private List<Unit> parseUnits(MapInfo info) {
+        MapParser.LayerInfo unitsLayer = info.getLayerByName("Units");
+        List<Unit> units = new ArrayList<>();
+        int firstGid = 0;
+        // 获取first gid
+        for (TilesetInfo info2 : info.tilesets) {
+            Log.info("aaaa"+info2.source+"bbbb"+info2.firstGid);
+            if (info2.source.equals("units.tsx")||info2.name.equals("units")) {
+                firstGid = info2.firstGid;
+            }
+        }
+        if (unitsLayer != null && unitsLayer.data != null) {
+            int tileWidth = info.tileWidth;
+            int tileHeight = info.tileHeight;
+
+            for (int y = 0; y < info.height; y++) {
+                for (int x = 0; x < info.width; x++) {
+                    int tileId = unitsLayer.getTileIdAt(x, y);
+                    if (tileId != 0) {
+                        Unit currUnitInfo = new Unit();
+                        float pixelX = x * tileWidth + tileWidth / 2.0f;
+                        currUnitInfo.pixelX = pixelX;
+                        float pixelY = y * tileHeight + tileHeight / 2.0f;
+                        currUnitInfo.pixelY = pixelY;
+
+                        int id = units.size() + 1;
+                        currUnitInfo.id = id;
+                        currUnitInfo.unitId = tileId - firstGid;// 别问 别动
+                        currUnitInfo.isMapUnit = true;
+                        currUnitInfo.team=UnitTsx.getTeam(currUnitInfo.unitId);
+                        currUnitInfo.name=UnitTsx.getName(currUnitInfo.unitId);
+                        units.add(currUnitInfo);
+                    }
                 }
-                return tileIds;
             }
-        } catch (Exception e) {
-            System.err.println("解析层数据时出错: " + e.getMessage());
-            e.printStackTrace();
-            return new ArrayList<>();
+        } else {
+            // 未找到Units层或层数据为空
         }
-    }
-
-    // GZIP解压缩
-    private byte[] decompressGZIP(byte[] compressedData) throws IOException {
-        ByteArrayInputStream bis = new ByteArrayInputStream(compressedData);
-        GZIPInputStream gis = new GZIPInputStream(bis);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = gis.read(buffer)) > 0) {
-            bos.write(buffer, 0, len);
-        }
-
-        gis.close();
-        bos.close();
-        return bos.toByteArray();
-    }
-
-    // Zlib解压缩
-    private byte[] decompressZlib(byte[] compressedData) {
-        try {
-            Inflater inflater = new Inflater();
-            inflater.setInput(compressedData);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream(compressedData.length);
-            byte[] buffer = new byte[1024];
-
-            while (!inflater.finished()) {
-                int count = inflater.inflate(buffer);
-                outputStream.write(buffer, 0, count);
-            }
-            outputStream.close();
-            inflater.end();
-            return outputStream.toByteArray();
-        } catch (DataFormatException | IOException e) {
-            System.err.println("Zlib解压缩错误: " + e.getMessage());
-            return new byte[0];
-        }
+        return units;
     }
 
     // 提取属性
@@ -292,7 +300,7 @@ public class MapParser {
         return properties;
     }
 
-    // 内部类定义
+    // =========================== 内部类定义- 结构体 =================================
     public static class MapInfo {
         public int width;
         public int height;
@@ -369,33 +377,4 @@ public class MapParser {
         }
     }
 
-    /*
-     * public static void main(String[] args) {
-     * MapParser parser = new MapParser(
-     * "/media/micro/Work_Space/Rukkit-master/build/outputs/data/你的地图文件.tmx");
-     * MapParser.MapInfo mapInfo = parser.getMapInfo();
-     * 
-     * if (mapInfo != null) {
-     * // 获取地图基本信息
-     * System.out.println("地图尺寸: " + mapInfo.width + "x" + mapInfo.height);
-     * System.out.println("图块尺寸: " + mapInfo.tileWidth + "x" + mapInfo.tileHeight);
-     * 
-     * // 获取图层信息
-     * for (MapParser.LayerInfo layer : mapInfo.layers) {
-     * System.out.println("图层: " + layer.name + ", 尺寸: " + layer.width + "x" +
-     * layer.height);
-     * }
-     * 
-     * // 获取对象信息
-     * for (String groupName : mapInfo.objects.keySet()) {
-     * System.out.println("对象组: " + groupName + ", 对象数量: " +
-     * mapInfo.objects.get(groupName).size());
-     * }
-     * for (UnitInfo cInfo: mapInfo.units){
-     * System.out.println("ID "+cInfo.id+" Name"+cInfo.name+" x"+cInfo.pixelX+" y"
-     * +cInfo.pixelY);
-     * }
-     * }
-     * }
-     */
 }
