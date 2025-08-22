@@ -21,18 +21,25 @@ import cn.rukkit.game.NetworkPlayer;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.game.SaveManager;
-import cn.rukkit.network.command.GameCommand;
+import cn.rukkit.game.VirtualWorld;
+import cn.rukkit.game.map.CustomMapLoader;
+import cn.rukkit.game.map.MapParser;
+import cn.rukkit.game.unit.Unit;
+import cn.rukkit.network.command.NewGameCommand;
 import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.util.Vote;
 
 public class NetworkRoom {
+    private static final Logger log = LoggerFactory.getLogger(NetworkRoom.class);
     public PlayerManager playerManager;
     public RoomConnectionManager connectionManager;
     /**
      * 命令列表。在采用更稳定的同步(useCommandQuere)时会启用，减少同步错误但是会提高操作延迟。
      */
-    private LinkedList<GameCommand> commandQuere = new LinkedList<GameCommand>();
+    private LinkedList<NewGameCommand> commandQuere = new LinkedList<NewGameCommand>();
+
+    public VirtualWorld world;// 虚拟世界 可以利用其获取游戏信息完成同步&校验
 
     public RoundConfig config;
     public int stepRate = 200;
@@ -57,14 +64,15 @@ public class NetworkRoom {
 
     @Override
     public String toString() {
-        return MessageFormat.format("NetworkRoom [id = {0}, isGaming = {1}, isPaused = {2}, currentStep = {3}, stepRate = {4}]",
+        return MessageFormat.format(
+                "NetworkRoom [id = {0}, isGaming = {1}, isPaused = {2}, currentStep = {3}, stepRate = {4}]",
                 roomId, isGaming, isPaused, currentStep, stepRate);
     }
 
     public NetworkRoom(int id) {
         // 指定房间id
         roomId = id;
-        //初始化玩家控制器，连接控制器，和存档管理器
+        // 初始化玩家控制器，连接控制器，和存档管理器
         playerManager = new PlayerManager(this, Rukkit.getConfig().maxPlayer);
         connectionManager = new RoomConnectionManager(this);
         saveManager = new SaveManager(this);
@@ -74,6 +82,7 @@ public class NetworkRoom {
 
     public class CheckSumTask implements Runnable {
         Logger log = LoggerFactory.getLogger("CheckSum Task Room #" + roomId);
+
         public void check(int recheck) {
             // recheck 失败，同步游戏
             if (recheck >= 3) {
@@ -86,9 +95,9 @@ public class NetworkRoom {
             int diffcount = 0;
             AtomicInteger time = new AtomicInteger();
             HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
-            for (RoomConnection r: connectionManager.getConnections()) {
+            for (RoomConnection r : connectionManager.getConnections()) {
                 if (r.checkSumSent) {
-                    map.put(r.lastSyncTick,map.getOrDefault(r.lastSyncTick, 0) + 1);
+                    map.put(r.lastSyncTick, map.getOrDefault(r.lastSyncTick, 0) + 1);
                 }
             }
             AtomicInteger max = new AtomicInteger();
@@ -99,18 +108,21 @@ public class NetworkRoom {
                 }
             });
             // log.info("Max sync time: {}", time);
-            for (RoomConnection r: connectionManager.getConnections()) {
+            for (RoomConnection r : connectionManager.getConnections()) {
                 // 未发送不检查
-                if (!r.checkSumSent) continue;
+                if (!r.checkSumSent)
+                    continue;
                 // 随机挑选一位玩家的checkList做样本进行检查
                 if (list == null) {
                     int rnd = new Random().nextInt(connectionManager.size());
                     if (connectionManager.getConnections().get(rnd).checkSumSent)
                         list = connectionManager.getConnections().get(rnd).player.checkList;
-                    else continue;
+                    else
+                        continue;
                 }
                 // 同步时间检查，若不符合正确的 tick 则不检查
-                if (time.get() != r.lastSyncTick) continue;
+                if (time.get() != r.lastSyncTick)
+                    continue;
                 // 检查所有数据, 出现问题则diffcount++;
                 if (!list.checkData(r.player.checkList)) {
                     diffcount++;
@@ -118,19 +130,20 @@ public class NetworkRoom {
             }
             if (diffcount >= Math.ceil(connectionManager.size() / 2.0) && connectionManager.size() >= 2) {
                 log.warn("diffcount {} > {} players!Do recheck!", diffcount, Math.ceil(connectionManager.size() / 2.0));
-                check(recheck+1);
+                check(recheck + 1);
                 // 如果有 2 人以上不同步则执行游戏同步
-            } else if (diffcount >= 2){
+            } else if (diffcount >= 2) {
                 log.info("Desync found.Resyncing game...");
                 syncGame();
             } else {
                 log.info("Checksum complete!");
             }
-            for (RoomConnection r: connectionManager.getConnections()) {
+            for (RoomConnection r : connectionManager.getConnections()) {
                 r.checkSumSent = false;
             }
             log.info("diffcount: {}, maxSyncTime: {}", diffcount, time);
         }
+
         @Override
         public void run() {
             if (checkRequested) {
@@ -138,7 +151,8 @@ public class NetworkRoom {
                     while (true) {
                         try {
                             checkSumReceived.wait();
-                            if (checkSumReceived.get() >= connectionManager.size()) break;
+                            if (checkSumReceived.get() >= connectionManager.size())
+                                break;
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -186,17 +200,18 @@ public class NetworkRoom {
             }
 
             synchronized (commandQuere) {
-                //log.debug("tick:" + tickTime);
+                // log.debug("tick:" + tickTime);
                 try {
                     if (commandQuere.isEmpty() && !isPaused) {
                         connectionManager.broadcast(UniversalPacket.emptyCommand(currentStep));
                     } else {
-                        while(!commandQuere.isEmpty() && !isPaused){
-                            GameCommand cmd = commandQuere.removeLast();
+                        while (!commandQuere.isEmpty() && !isPaused) {
+                            NewGameCommand cmd = commandQuere.removeLast();
                             connectionManager.broadcast(UniversalPacket.gameCommand(currentStep, cmd));
                         }
                     }
-                } catch (IOException ignored) {}
+                } catch (IOException ignored) {
+                }
             }
         }
     }
@@ -214,44 +229,50 @@ public class NetworkRoom {
             if (connectionManager.size() == 1 && !cfg.singlePlayerMode && !isPaused) {
                 connectionManager.broadcastServerMessage("1 player left.We will have a sync and pause game...");
                 syncGame();
-				/*synchronized (threadLock) {
-					try {
-						threadLock.wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}*/
+                /*
+                 * synchronized (threadLock) {
+                 * try {
+                 * threadLock.wait();
+                 * } catch (InterruptedException e) {
+                 * e.printStackTrace();
+                 * }
+                 * }
+                 */
                 setPaused(true);
                 return;
             }
 
-            /* If playerCount == 0 then pauseGame
+            /*
+             * If playerCount == 0 then pauseGame
              */
             if (connectionManager.size() <= 0) {
-				/*synchronized (threadLock) {
-					try {
-						threadLock.wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}*/
+                /*
+                 * synchronized (threadLock) {
+                 * try {
+                 * threadLock.wait();
+                 * } catch (InterruptedException e) {
+                 * e.printStackTrace();
+                 * }
+                 * }
+                 */
                 setPaused(true);
                 return;
             }
 
             // If using query mode:
             synchronized (commandQuere) {
-                //log.debug("tick:" + tickTime);
+                // log.debug("tick:" + tickTime);
                 try {
                     if (commandQuere.isEmpty() && !isPaused) {
                         connectionManager.broadcast(UniversalPacket.emptyCommand(currentStep));
                     } else {
-                        while(!commandQuere.isEmpty() && !isPaused){
-                            GameCommand cmd = commandQuere.removeLast();
+                        while (!commandQuere.isEmpty() && !isPaused) {
+                            NewGameCommand cmd = commandQuere.removeLast();
                             connectionManager.broadcast(UniversalPacket.gameCommand(currentStep, cmd));
                         }
                     }
-                } catch (IOException ignored) {}
+                } catch (IOException ignored) {
+                }
             }
         }
     }
@@ -265,10 +286,10 @@ public class NetworkRoom {
             Logger log = LoggerFactory.getLogger("SyncTask #" + roomId);
             connectionManager.clearAllSaveData();
             setPaused(true);
-            //自定义地图的同步逻辑
+            // 自定义地图的同步逻辑
             try {
-                //Rukkit.getSaveManager().sendDefaultSaveToAll();
-                //Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
+                // Rukkit.getSaveManager().sendDefaultSaveToAll();
+                // Rukkit.getConnectionManager().broadcast(Packet.syncCheckSum());
                 connectionManager.broadcast(UniversalPacket.sendPullSave(NetworkRoom.this));
                 SaveData save;
                 long time = System.currentTimeMillis();
@@ -278,8 +299,8 @@ public class NetworkRoom {
                         saveManager.setLastSave(save);
                         saveManager.sendLastSaveToAll(false);
                         syncCount++;
-                        //save.loadSave();
-                        //tickTime = save.time;
+                        // save.loadSave();
+                        // tickTime = save.time;
                         setPaused(false);
                         break;
                     } else if (System.currentTimeMillis() - time > 5000) {
@@ -310,7 +331,7 @@ public class NetworkRoom {
 
     public void doChecksum() {
         checkRequested = true;
-        for (RoomConnection r: connectionManager.connections) {
+        for (RoomConnection r : connectionManager.connections) {
             r.doChecksum();
         }
         Rukkit.getThreadManager().submit(new CheckSumTask());
@@ -341,13 +362,12 @@ public class NetworkRoom {
         gameTaskFuture.cancel(true);
         isGaming = false;
         RoomStopGameEvent.getListenerList().callListeners(new RoomStopGameEvent(this));
-        //Rukkit.getThreadManager().shutdown();
+        // Rukkit.getThreadManager().shutdown();
     }
-
-
 
     /**
      * Broadcast a packet.
+     * 
      * @param packet the packet wants to broadcast in this room.
      */
     public void broadcast(Packet packet) {
@@ -363,9 +383,9 @@ public class NetworkRoom {
     }
 
     public boolean isGaming() {
-//        if (Rukkit.getConfig().nonStopMode) {
-//            return true;
-//        }
+        // if (Rukkit.getConfig().nonStopMode) {
+        // return true;
+        // }
         if (currentStep <= 0) {
             isGaming = false;
         } else {
@@ -384,38 +404,53 @@ public class NetworkRoom {
     public void startGame() {
         try {
             connectionManager.broadcast(UniversalPacket.gameStart());
+
+            // 载入tmx文件到Virtual World
+            world = new VirtualWorld();
+            if (Rukkit.getRoundConfig().mapType == 0) {
+                MapParser m = new MapParser(
+                        Rukkit.getEnvPath() + "/data/maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
+                world.units = m.getMapInfo().units;
+            } else if (Rukkit.getRoundConfig().mapType == 1) {
+                MapParser m = new MapParser(Rukkit.getEnvPath() + Rukkit.getRoundConfig().mapName + ".tmx");
+            }
+
             // Set shared control.
             if (Rukkit.getRoundConfig().sharedControl) {
-                for (NetworkPlayer p:playerManager.getPlayerArray()) {
+                for (NetworkPlayer p : playerManager.getPlayerArray()) {
                     try {
                         p.isNull();
                         p.isSharingControl = false;
-                    } catch (NullPointerException ignored) {continue;}
+                    } catch (NullPointerException ignored) {
+                        continue;
+                    }
                 }
             }
             // Reset tick time
             currentStep = 0;
             // Broadcast start packet.
             connectionManager.broadcast(UniversalPacket.serverInfo(config));
-            for(RoomConnection conn : connectionManager.getConnections()) {
+            for (RoomConnection conn : connectionManager.getConnections()) {
                 conn.updateTeamList();
             }
             gameTaskFuture = Rukkit.getThreadManager().schedule(new GameTask(), stepRate, stepRate);
-            //connectionManager.broadcast()
+            // connectionManager.broadcast()
             isGaming = true;
             RoomStartGameEvent.getListenerList().callListeners(new RoomStartGameEvent(this));
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     /**
      * Start a no-stop game.
      * only works if nonStop config == true
      */
-//    public void startNoStopGame() {
-//        if (Rukkit.getConfig().nonStopMode) {
-//            gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(), stepRate, stepRate);
-//        }
-//    }
+    // public void startNoStopGame() {
+    // if (Rukkit.getConfig().nonStopMode) {
+    // gameTaskFuture = Rukkit.getThreadManager().schedule(new NonStopGameTask(),
+    // stepRate, stepRate);
+    // }
+    // }
 
     public void changeMapWhileRunning(String mapName, int type) {
         Rukkit.getRoundConfig().mapName = mapName;
@@ -424,25 +459,28 @@ public class NetworkRoom {
             connectionManager.broadcast(UniversalPacket.gameStart());
             // Set shared control.
             if (Rukkit.getRoundConfig().sharedControl) {
-                for (NetworkPlayer p:playerManager.getPlayerArray()) {
+                for (NetworkPlayer p : playerManager.getPlayerArray()) {
                     try {
                         p.isNull();
                         // p.isSharingControl = true;
-                    } catch (NullPointerException ignored) {continue;}
+                    } catch (NullPointerException ignored) {
+                        continue;
+                    }
                 }
             }
             // Reset tick time
             currentStep = 0;
             // Broadcast start packet.
             connectionManager.broadcast(UniversalPacket.serverInfo(config));
-            for(RoomConnection conn : connectionManager.getConnections()) {
+            for (RoomConnection conn : connectionManager.getConnections()) {
                 conn.updateTeamList(false);
             }
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     public void notifyGameTask() {
-        //hreadLock.notify();
+        // hreadLock.notify();
         setPaused(false);
     }
 
@@ -454,13 +492,14 @@ public class NetworkRoom {
         return currentStep;
     }
 
-    public void addCommand(GameCommand cmd) {
+    public void addCommand(NewGameCommand cmd) {
         if (Rukkit.getConfig().useCommandQuere) {
             commandQuere.addLast(cmd);
         } else {
             try {
                 broadcast(UniversalPacket.gameCommand(this.currentStep, cmd));
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
     }
 

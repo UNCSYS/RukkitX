@@ -18,7 +18,7 @@
         </encoder>
         <!-- 明确设置控制台日志级别 -->
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>INFO</level>
+            <level>DEBUG</level>
         </filter>
     </appender>
 
@@ -34,4 +34,10 @@
 
     <!-- 额外确保特定包不使用DEBUG -->
     <logger name="cn.rukkit" level="INFO"/>
+
+    <!-- 为特定类设置DEBUG级别 -->
+    <logger name="cn.rukkit.network.core.ServerPacketHandler" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
 </configuration>
