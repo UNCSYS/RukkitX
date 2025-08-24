@@ -2,8 +2,10 @@ package cn.rukkit.network.room;
 
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,7 +24,6 @@ import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.SaveData;
 import cn.rukkit.game.SaveManager;
 import cn.rukkit.game.VirtualWorld;
-import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.MapParser;
 import cn.rukkit.game.unit.Unit;
 import cn.rukkit.network.command.NewGameCommand;
@@ -411,7 +412,38 @@ public class NetworkRoom {
                 MapParser m = new MapParser(
                         Rukkit.getEnvPath() + "/data/maps/skirmish/" + Rukkit.getRoundConfig().mapName + ".tmx");
                 world.units = m.getMapInfo().units;
+
+                //第一步 仅保留有效玩家的Unit
+                List<Integer> validIndex = new ArrayList<>();
+                for (NetworkPlayer currPlayer : playerManager.getPlayerArray()) {
+                    if (!currPlayer.isEmpty) {
+                        validIndex.add(currPlayer.playerIndex);
+
+                    }
+                }
+                for (int i = 0; i < world.units.size(); i++) {
+                    boolean isValid = false;
+                    for (int cur : validIndex) {
+                        if (world.units.get(i).index == cur) {
+                            isValid = true;
+                        }
+                    }
+                    if (!isValid) {
+                        world.units.remove(i);
+                        i--;
+                    }
+                }
+                for (int i = 0; i < world.units.size(); i++) {
+                    world.units.get(i).id = i + 1;
+                }
+
+                for (Unit currUnit : world.units) {
+                    log.info("CURRX - " + currUnit.id + "he team" + currUnit.index);
+                    // currUnitTeam;
+                }
+                playerManager.getPlayerCount();
             } else if (Rukkit.getRoundConfig().mapType == 1) {
+                //TODO: 未支持自定义Map 的VWorld
                 MapParser m = new MapParser(Rukkit.getEnvPath() + Rukkit.getRoundConfig().mapName + ".tmx");
             }
 

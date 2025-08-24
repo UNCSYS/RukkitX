@@ -6,6 +6,12 @@
  *
  * https://github.com/RukkitDev/Rukkit/blob/master/LICENSE
  */
+/*
+ * Copyright 2025 Micro(MCLDY@outlook.com) and contributors.
+ * 
+ * 本衍生作品基于 AGPLv3 许可证
+ * This derivative work is licensed under AGPLv3
+ */
 
 package cn.rukkit.network;
 
@@ -22,10 +28,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.timeout.IdleStateHandler;
-
-import java.io.ObjectInputFilter.Config;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

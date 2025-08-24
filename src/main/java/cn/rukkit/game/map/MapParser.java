@@ -150,7 +150,6 @@ public class MapParser {
 
             return info;
         } catch (Exception e) {
-            System.err.println("解析TMX文件时出错: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
@@ -248,7 +247,6 @@ public class MapParser {
         int firstGid = 0;
         // 获取first gid
         for (TilesetInfo info2 : info.tilesets) {
-            Log.info("aaaa"+info2.source+"bbbb"+info2.firstGid);
             if (info2.source.equals("units.tsx")||info2.name.equals("units")) {
                 firstGid = info2.firstGid;
             }
@@ -271,7 +269,7 @@ public class MapParser {
                         currUnitInfo.id = id;
                         currUnitInfo.unitId = tileId - firstGid;// 别问 别动
                         currUnitInfo.isMapUnit = true;
-                        currUnitInfo.team=UnitTsx.getTeam(currUnitInfo.unitId);
+                        currUnitInfo.index=UnitTsx.getIndex(currUnitInfo.unitId);
                         currUnitInfo.name=UnitTsx.getName(currUnitInfo.unitId);
                         units.add(currUnitInfo);
                     }

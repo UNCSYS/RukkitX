@@ -1,13 +1,20 @@
+/*
+ * Copyright 2025 Micro(MCLDY@outlook.com) and contributors.
+ * 
+ * 本衍生作品基于 AGPLv3 许可证
+ * This derivative work is licensed under AGPLv3
+ */
 package cn.rukkit.network.command;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.rukkit.event.Event;
-import cn.rukkit.event.ListenerList;
 import cn.rukkit.event.action.BuildEvent;
 import cn.rukkit.event.action.MoveEvent;
 import cn.rukkit.event.action.PingEvent;
@@ -16,7 +23,6 @@ import cn.rukkit.game.GameActions;
 import cn.rukkit.game.UnitType;
 import cn.rukkit.game.unit.InternalUnit;
 import cn.rukkit.network.core.ServerPacketHandler;
-import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.io.GameInputStream;
 import cn.rukkit.network.io.GameOutputStream;
 import cn.rukkit.network.io.GzipDecoder;
@@ -28,14 +34,40 @@ import cn.rukkit.util.MathUtil;
 //代码十分抽象 建议别动
 public class NewGameCommand {
     private static final Logger log = LoggerFactory.getLogger(ServerPacketHandler.class);
-    public byte[] arr;
-    public Event act = null;
-    public byte index;
-    public GameOutputStream out = new GameOutputStream();
+    public GameOutputStream out = new GameOutputStream();// 用来烂代码的
+    // 关键数据
+    public byte[] arr; // 实际包体
+    public Event act = null;// 执行Action
+    public byte index;// 玩家偏移
+
+    /*
+     * 关于耦合区:
+     * 每次游戏更新时都需要更新GameCommand的内容
+     * 为了方便更新 划分出耦合区
+     * 开发者需要在耦合区获取必要数据 例如Action
+     * 非耦合区完成业务代码 例如Event
+     * 这样可以专心耦合代码 不必每次都在耦合代码中写业务代码
+     */
 
     public NewGameCommand(byte[] arr, RoomConnection conn) throws IOException {
         this.arr = arr;
 
+        // 在这里写需要耦合区获取的变量
+        boolean isBasicAction;
+        boolean isCancel;// BasicAction | 是否为取消操作
+        float x=-1;// BasicAction
+        float y=-1;// BasicAction
+        String targetUnit = "";// BasicAction
+        GameActions action = null;// BaseAction
+        boolean isPing;
+        float pingX = 0;
+        float pingY = 0;
+        boolean isBuildUnit = false;// 建造单位
+        String buildUnit;
+        List<Long> actionUnitsIds = new ArrayList<Long>();// 受到执行的所有单位IDs
+        // ==================================================================================//
+        // ------------------------------------耦合区开始------------------------------------//
+        // ==================================================================================//
         GameInputStream str = new GameInputStream(arr);
         boolean isCustom = false;
         byte byte1, byte2;
@@ -47,11 +79,12 @@ public class NewGameCommand {
         log.debug("teamIndex=" + index);
 
         // 是否为BasicAction
-        if (str.readBoolean()) {
+        isBasicAction = str.readBoolean();
+        if (isBasicAction) {
             log.debug("-- BasicGameAction --");
             out.writeBoolean(true);
             // 游戏指令
-            GameActions action = (GameActions) str.readEnum(GameActions.class);
+            action = (GameActions) str.readEnum(GameActions.class);
             out.writeEnum(action);
             log.debug("Action=" + action);
             // sendPacket(ctx, new Packet().chat("Debug", "Your action is:" + action, -1));
@@ -59,7 +92,6 @@ public class NewGameCommand {
             int n2 = str.readInt();
             out.writeInt(n2);
             log.debug("BuildUnit:" + n2);
-            String targetUnit = "";
             if (n2 == -2) {
                 targetUnit = str.readString();
                 out.writeString(targetUnit);
@@ -76,11 +108,11 @@ public class NewGameCommand {
             }
 
             // 动作的目标位置
-            float x = str.readFloat();
+            x = str.readFloat();
             out.writeFloat(x);
             // act.x = x;
             log.debug("" + x);
-            float y = str.readFloat();
+            y = str.readFloat();
             out.writeFloat(y);
             // act.y = y;
             log.debug("" + y);
@@ -119,14 +151,6 @@ public class NewGameCommand {
             } else {
                 out.writeBoolean(false);
             }
-            switch (action) {
-                case BUILD:
-                    act = new BuildEvent(conn.player, x, y, targetUnitID, targetUnit);
-                    break;
-                case MOVE:
-                    act = new MoveEvent(conn.player, x, y, targetUnitID);
-                    break;
-            }
             log.debug("-- End BasicGameAction --");
         } else {
             out.writeBoolean(false);
@@ -134,7 +158,7 @@ public class NewGameCommand {
         //
         log.trace("CommandBlock ended.");
 
-        boolean bool4, isCancel;
+        boolean bool4;
         bool4 = str.readBoolean(); // 未知
         isCancel = str.readBoolean();
         log.trace("Boolean4=" + bool4);
@@ -171,16 +195,20 @@ public class NewGameCommand {
         log.trace("Boolean6=" + bool6);
 
         // 批量执行单位
-        int t = str.readInt();
-        out.writeBoolean(bool6);
-        out.writeInt(t);
-        // 批量执行的单位数量
-        log.debug("UnitCount(Maybe)=" + t);
-        // 批量执行的单位ID
-        for (int i = 0; i < t; i++) {
-            long unitidInMatch = str.readLong();
-            log.debug("UnitidInMatch(Maybe)=" + unitidInMatch);
-            out.writeLong(unitidInMatch);
+        {
+            // 这个是按Unit计算的 每个受到操作的Unit都会被计入
+            int t = str.readInt();
+            out.writeBoolean(bool6);
+            out.writeInt(t);
+            // 批量执行的单位数量
+            log.debug("UnitCount(Really)=" + t);
+            // 批量执行的单位ID
+            for (int i = 0; i < t; i++) {
+                long unitidInMatch = str.readLong();
+                actionUnitsIds.add(unitidInMatch);
+                log.debug("UnitidInMatch(Maybe)=" + unitidInMatch);
+                out.writeLong(unitidInMatch);
+            }
         }
 
         // 如果为True, 则为预执行命令
@@ -195,9 +223,8 @@ public class NewGameCommand {
         }
 
         // 与Ping有关
-        float pingX = 0;
-        float pingY = 0;
-        if (str.readBoolean()) {
+        isPing = str.readBoolean();
+        if (isPing) {
             out.writeBoolean(true);
             log.trace("Its a ping packet.");
             // float f5,f6;
@@ -216,14 +243,10 @@ public class NewGameCommand {
         out.writeLong(l6);
 
         // Build块（实际上叫做SpecialAction, 可能是ping，或者是build)
-        String buildUnit = str.readString();
+        buildUnit = str.readString();
         log.debug("str(BuildUnit):" + buildUnit);
         if (!buildUnit.equals("-1")) {
-            if (buildUnit.startsWith("c_6_")) {
-                act = new PingEvent(conn.player, pingX, pingY, buildUnit);
-            } else {
-                act = new TaskEvent(conn.player, buildUnit, l6, isCancel);
-            }
+            isBuildUnit = true;
             /*
              * act = new ProduceAction();
              * ((ProduceAction) act).targetUnit = buildUnit;
@@ -262,10 +285,12 @@ public class NewGameCommand {
             out.writeBoolean(false);
         }
 
-        int movementUnitCount = str.readInt();
-        out.writeInt(movementUnitCount);
-        log.debug("count={}", movementUnitCount);
-        for (int i = 0; i < movementUnitCount; i++) {
+        // 这个与上面的遍历操作单位不一样 是按种类执行的 会取种类其中的一个样例给出start/end pos
+        // 例如9999机枪+9999建造者count为2
+        int movingUnitTypeCount = str.readInt();
+        out.writeInt(movingUnitTypeCount);
+        log.debug("type count={}", movingUnitTypeCount);
+        for (int i = 0; i < movingUnitTypeCount; i++) {
             float sx, sy, ex, ey;
             long unitid = str.readLong();
             sx = str.readFloat();
@@ -305,7 +330,7 @@ public class NewGameCommand {
                         short unity = ins.readShort();
                         outstr.stream.writeShort(unitx);
                         outstr.stream.writeShort(unity);
-                        log.trace("Start x:" + unitx + ", Start y:" + unity);
+                        log.debug("Start x:" + unitx + ", Start y:" + unity);
                         for (int i2 = 1; i2 < pathCount; i2++) {
                             // PathSize
                             int len = ins.readByte();
@@ -327,6 +352,7 @@ public class NewGameCommand {
                             }
                             // log.debug(ins.readShort());
                         }
+                        log.debug("[NESHINO] Start x:" + unitx + ", Start y:" + unity);
                     }
                     out.flushEncodeData(outstr);
                 } else {
@@ -344,5 +370,33 @@ public class NewGameCommand {
         // byte[] byt = new byte[str.stream.available()];
         // str.stream.read(byt);
         // out.stream.write(byt);
+
+        // ================================================================================== //
+        // ------------------------------------耦合区结束------------------------------------ //
+        // ================================================================================== //
+
+        if (isBasicAction) {
+            if (action==null||x==-1||y==-1) {
+                log.warn("WTF? BasicAction没获取到数据?");
+            }
+            switch (action) {
+                case BUILD:
+                    act = new BuildEvent(conn.player, x, y, actionUnitsIds, targetUnit);
+                    break;//建造只会有一个建筑建造 对吧? 当然不对 
+                case MOVE:
+                    act = new MoveEvent(conn.player, x, y, actionUnitsIds);//
+                    break;
+                default:
+                    //log.warn("wtf? no build&move base Action?");
+                    break;
+            }
+        }
+        if (isBuildUnit) {
+            if (buildUnit.startsWith("c_6_")) {
+                act = new PingEvent(conn.player, pingX, pingY, buildUnit);
+            } else {
+                act = new TaskEvent(conn.player, buildUnit, l6, isCancel);
+            }
+        }
     }
 }

@@ -1,6 +1,11 @@
+/*
+ * Copyright 2025 Micro(MCLDY@outlook.com) and contributors.
+ * 
+ * 本衍生作品基于 AGPLv3 许可证
+ * This derivative work is licensed under AGPLv3
+ */
 package cn.rukkit.network.core;
 
-import cn.rukkit.network.room.NetworkRoom;
 import cn.rukkit.network.room.RoomConnection;
 import io.netty.channel.ChannelHandlerContext;
 

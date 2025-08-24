@@ -6,6 +6,6 @@ public class Unit {
     public String name;// Example: 建造者A
     public float pixelX;
     public float pixelY;
-    public int team;
+    public int index;//player index
     public boolean isMapUnit = false;//区别map原有的单位与玩家游戏中产生的单位
 }

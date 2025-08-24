@@ -8,7 +8,6 @@
  */
 
 package cn.rukkit.plugin.internal;
-//import cn.rukkit.plugin.InternalRukkitPlugin;
 import cn.rukkit.Rukkit;
 import cn.rukkit.command.ChatCommand;
 import cn.rukkit.command.ChatCommandListener;
@@ -22,7 +21,6 @@ import cn.rukkit.game.PingType;
 import cn.rukkit.game.PlayerManager;
 import cn.rukkit.game.map.CustomMapLoader;
 import cn.rukkit.game.map.OfficialMap;
-import cn.rukkit.network.core.packet.Packet;
 import cn.rukkit.network.core.packet.UniversalPacket;
 import cn.rukkit.network.room.RoomConnection;
 import cn.rukkit.network.room.RoomConnectionManager;

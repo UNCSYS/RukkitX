@@ -187,7 +187,7 @@ public class UnitTsx {
         }
     }
 
-    public static int getTeam(int unitId) {
+    public static int getIndex(int unitId) {
         switch (unitId) {
             case 0: return 0;
             case 1: return 0;
@@ -368,7 +368,7 @@ public class UnitTsx {
             case 265: return 1;
             case 266: return 1;
             case 270: return 1;
-            default: return -2; // 未知队伍
+            default: return -2; // 未知index
         }
     }
 }
